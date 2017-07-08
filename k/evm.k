@@ -350,7 +350,7 @@ module ETHEREUM
 
     syntax InternalOp ::= "#next"
  // -----------------------------
-    rule <op> #next => #if word2Bool(PCOUNT <Word #sizeOpCodeMap(PGM)) #then #exception #else #end #fi ... </op>
+    rule <op> #next => #if PCOUNT <Int #sizeOpCodeMap(PGM) #then #exception #else #end #fi ... </op>
          <pc> PCOUNT </pc>
          <program> PGM </program>
       requires notBool (PCOUNT in_keys(PGM))
@@ -604,8 +604,8 @@ module ETHEREUM
 
     syntax InternalOp ::= "#pc" "[" OpCode "]"
  // ------------------------------------------
-    rule <op> #pc [ OP         ] => . ... </op> <pc> PCOUNT => PCOUNT +Word 1           </pc> requires notBool (isPushOp(OP) orBool isJumpOp(OP))
-    rule <op> #pc [ PUSH(N, _) ] => . ... </op> <pc> PCOUNT => PCOUNT +Word (1 +Word N) </pc>
+    rule <op> #pc [ OP         ] => . ... </op> <pc> PCOUNT => PCOUNT +Int 1          </pc> requires notBool (isPushOp(OP) orBool isJumpOp(OP))
+    rule <op> #pc [ PUSH(N, _) ] => . ... </op> <pc> PCOUNT => PCOUNT +Int (1 +Int N) </pc>
     rule <op> #pc [ OP         ] => . ... </op> requires isJumpOp(OP)
 
     syntax Bool ::= isJumpOp ( OpCode ) [function]
@@ -690,8 +690,8 @@ module ETHEREUM
     rule #asOpCodes(N, N |-> OP         M) => OP         ; #asOpCodes(N +Int 1,        M) requires notBool isPushOp(OP)
     rule #asOpCodes(N, N |-> PUSH(S, W) M) => PUSH(S, W) ; #asOpCodes(N +Int 1 +Int S, M)
 
-    syntax Word ::= #sizeOpCodeMap ( Map ) [function]
- // -------------------------------------------------
+    syntax Int ::= #sizeOpCodeMap ( Map ) [function]
+ // ------------------------------------------------
     rule #sizeOpCodeMap(M) => #sizeWordStack(#asmOpCodes(#asOpCodes(M)))
 
 
@@ -761,7 +761,7 @@ module ETHEREUM
            <balance> ORIGTO => ORIGTO +Word VALUE </balance>
            ...
          </account>
-      requires ACCTFROM =/=K ACCTTO andBool word2Bool(VALUE <=Word ORIGFROM)
+      requires ACCTFROM =/=K ACCTTO andBool VALUE <=Int ORIGFROM
 
     rule <op> #transferFunds ACCTFROM ACCTTO VALUE => #exception ... </op>
          <account>
@@ -769,7 +769,7 @@ module ETHEREUM
            <balance> ORIGFROM </balance>
            ...
          </account>
-      requires ACCTFROM =/=K ACCTTO andBool word2Bool(VALUE >Word ORIGFROM)
+      requires ACCTFROM =/=K ACCTTO andBool VALUE >Int ORIGFROM
 
     rule <op> (. => #newAccount ACCTTO) ~> #transferFunds ACCTFROM ACCTTO VALUE ... </op>
          <activeAccounts> ACCTS </activeAccounts>
@@ -799,8 +799,8 @@ module ETHEREUM
 
     syntax StackOp ::= DUP ( Word ) | SWAP ( Word )
  // -----------------------------------------------
-    rule <op> DUP(N)  WS:WordStack => #setStack ((WS [ N -Word 1 ]) : WS)                       ... </op>
-    rule <op> SWAP(N) (W0 : WS)    => #setStack ((WS [ N -Word 1 ]) : (WS [ N -Word 1 := W0 ])) ... </op>
+    rule <op> DUP(N)  WS:WordStack => #setStack ((WS [ N -Int 1 ]) : WS)                      ... </op>
+    rule <op> SWAP(N) (W0 : WS)    => #setStack ((WS [ N -Int 1 ]) : (WS [ N -Int 1 := W0 ])) ... </op>
 
     syntax PushOp ::= PUSH ( Word , Word )
  // --------------------------------------
@@ -837,9 +837,9 @@ module ETHEREUM
 
     syntax UnStackOp ::= "ISZERO" | "NOT"
  // -------------------------------------
-    rule <op> ISZERO 0 => bool2Word(true)  ~> #push ... </op>
-    rule <op> ISZERO W => bool2Word(false) ~> #push ... </op> requires W =/=K 0
-    rule <op> NOT    W => ~Word W          ~> #push ... </op>
+    rule <op> ISZERO 0 => 1       ~> #push ... </op>
+    rule <op> ISZERO W => 0       ~> #push ... </op> requires W =/=K 0
+    rule <op> NOT    W => ~Word W ~> #push ... </op>
 
     syntax BinStackOp ::= "ADD" | "MUL" | "SUB" | "DIV" | "EXP" | "MOD"
  // -------------------------------------------------------------------
@@ -867,14 +867,14 @@ module ETHEREUM
 
     syntax BinStackOp ::= "AND" | "EVMOR" | "XOR"
  // ---------------------------------------------
-    rule <op> AND   W0 W1 => W0 &Word W1   ~> #push ... </op>
-    rule <op> EVMOR W0 W1 => W0 |Word W1   ~> #push ... </op>
+    rule <op> AND   W0 W1 => W0 &Word   W1 ~> #push ... </op>
+    rule <op> EVMOR W0 W1 => W0 |Word   W1 ~> #push ... </op>
     rule <op> XOR   W0 W1 => W0 xorWord W1 ~> #push ... </op>
 
     syntax BinStackOp ::= "LT" | "GT" | "EQ"
  // ----------------------------------------
-    rule <op> LT W0 W1 => W0 <Word W1  ~> #push ... </op>
-    rule <op> GT W0 W1 => W0 >Word W1  ~> #push ... </op>
+    rule <op> LT W0 W1 => W0 <Word  W1 ~> #push ... </op>
+    rule <op> GT W0 W1 => W0 >Word  W1 ~> #push ... </op>
     rule <op> EQ W0 W1 => W0 ==Word W1 ~> #push ... </op>
 
     syntax BinStackOp ::= "SLT" | "SGT"
@@ -945,8 +945,8 @@ module ETHEREUM
 
     syntax BinStackOp ::= "JUMPI"
  // -----------------------------
-    rule <op> JUMPI DEST I => . ... </op> <pc> _      => DEST           </pc> requires I =/=K 0
-    rule <op> JUMPI DEST 0 => . ... </op> <pc> PCOUNT => PCOUNT +Word 1 </pc>
+    rule <op> JUMPI DEST I => . ... </op> <pc> _      => DEST          </pc> requires I =/=K 0
+    rule <op> JUMPI DEST 0 => . ... </op> <pc> PCOUNT => PCOUNT +Int 1 </pc>
 
 
 // ### `STOP` and `RETURN`
@@ -999,7 +999,7 @@ module ETHEREUM
          <wordStack> WS => #drop(N, WS) </wordStack>
          <localMem> LM </localMem>
          <log> ... (.Set => SetItem({ ACCT | #take(N, WS) | #range(LM, MEMSTART, MEMWIDTH) })) </log>
-      requires word2Bool(#sizeWordStack(WS) >=Word N)
+      requires #sizeWordStack(WS) >=Int N
 
 
 // Ethereum Network OpCodes
@@ -1745,12 +1745,12 @@ module ETHEREUM
     syntax OpCodes ::= #dasmOpCodes ( WordStack ) [function]
  // --------------------------------------------------------
     rule #dasmOpCodes( .WordStack ) => .OpCodes
-    rule #dasmOpCodes( W : WS )     => #dasmOpCode(W)    ; #dasmOpCodes(WS) requires word2Bool(W >=Word 0)   andBool word2Bool(W <=Word 95)
-    rule #dasmOpCodes( W : WS )     => #dasmOpCode(W)    ; #dasmOpCodes(WS) requires word2Bool(W >=Word 165) andBool word2Bool(W <=Word 255)
-    rule #dasmOpCodes( W : WS )     => DUP(W -Word 127)  ; #dasmOpCodes(WS) requires word2Bool(W >=Word 128) andBool word2Bool(W <=Word 143)
-    rule #dasmOpCodes( W : WS )     => SWAP(W -Word 143) ; #dasmOpCodes(WS) requires word2Bool(W >=Word 144) andBool word2Bool(W <=Word 159)
-    rule #dasmOpCodes( W : WS )     => LOG(W -Word 160)  ; #dasmOpCodes(WS) requires word2Bool(W >=Word 160) andBool word2Bool(W <=Word 164)
-    rule #dasmOpCodes( W : WS )     => #dasmPUSH( W -Word 95 , WS )         requires word2Bool(W >=Word 96)  andBool word2Bool(W <=Word 127)
+    rule #dasmOpCodes( W : WS )     => #dasmOpCode(W)   ; #dasmOpCodes(WS) requires W >=Int 0   andBool W <=Int 95
+    rule #dasmOpCodes( W : WS )     => #dasmOpCode(W)   ; #dasmOpCodes(WS) requires W >=Int 165 andBool W <=Int 255
+    rule #dasmOpCodes( W : WS )     => DUP(W -Int 127)  ; #dasmOpCodes(WS) requires W >=Int 128 andBool W <=Int 143
+    rule #dasmOpCodes( W : WS )     => SWAP(W -Int 143) ; #dasmOpCodes(WS) requires W >=Int 144 andBool W <=Int 159
+    rule #dasmOpCodes( W : WS )     => LOG(W -Int 160)  ; #dasmOpCodes(WS) requires W >=Int 160 andBool W <=Int 164
+    rule #dasmOpCodes( W : WS )     => #dasmPUSH( W -Int 95 , WS )         requires W >=Int 96  andBool W <=Int 127
 
     syntax OpCodes ::= #dasmPUSH ( Word , WordStack ) [function]
  // ------------------------------------------------------------
