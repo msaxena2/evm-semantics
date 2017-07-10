@@ -1572,23 +1572,6 @@ module ETHEREUM
     rule <op> #gasExec(SCHED, BLOCKHASH _)   => Gblockhash   < SCHED > ... </op>
 
 
-// -   `#stripArgs` removes the arguments from an operator.
-
-
-    syntax OpCode ::= #stripArgs ( OpCode ) [function]
- // --------------------------------------------------
-    rule #stripArgs(NOP:NullStackOp)            => NOP
-    rule #stripArgs(UOP:UnStackOp _)            => UOP
-    rule #stripArgs(BOP:BinStackOp _ _)         => BOP
-    rule #stripArgs(TOP:TernStackOp _ _ _)      => TOP
-    rule #stripArgs(QOP:QuadStackOp _ _ _ _)    => QOP
-    rule #stripArgs(PUSHOP:PushOp)              => PUSHOP
-    rule #stripArgs(SOP:StackOp)                => SOP
-    rule #stripArgs(SOP:StackOp _)              => SOP
-    rule #stripArgs(COP:CallOp _ _ _ _ _ _ _)   => COP
-    rule #stripArgs(CSOP:CallSixOp _ _ _ _ _ _) => CSOP
-
-
 // There are several helpers for calculating gas (most of them also specified in
 // the yellowpaper).
 
@@ -1636,6 +1619,8 @@ module ETHEREUM
 
 // Some subsets of the opcodes are called out because they all have the same gas
 // cost.
+
+// -   `#stripArgs` removes the arguments from an operator.
 
 // Fee Schedule from C++ Implementation
 // ------------------------------------
