@@ -1596,8 +1596,8 @@ module ETHEREUM
     rule Ccallgas(SCHED, ACCT, ACCTS, GCAP, GAVAIL, 0)     => Cgascap(SCHED, GCAP, GAVAIL, Cextra(SCHED, ACCT, ACCTS,     0))
     rule Ccallgas(SCHED, ACCT, ACCTS, GCAP, GAVAIL, VALUE) => Cgascap(SCHED, GCAP, GAVAIL, Cextra(SCHED, ACCT, ACCTS, VALUE)) +Int Gcallstipend < SCHED > requires VALUE =/=K 0
 
-    rule Cgascap(SCHED, GCAP, GAVAIL, GEXTRA) => minInt(#allBut64th(GAVAIL -Int GEXTRA), GCAP) requires GAVAIL >=Int GEXTRA andBool notBool word2Bool(Gstaticcalldepth < SCHED >)
-    rule Cgascap(SCHED, GCAP, GAVAIL, GEXTRA) => GCAP                                          requires GAVAIL <Int  GEXTRA orBool word2Bool(Gstaticcalldepth < SCHED >)
+    rule Cgascap(SCHED, GCAP, GAVAIL, GEXTRA) => minInt(#allBut64th(GAVAIL -Int GEXTRA), GCAP) requires GAVAIL >=Int GEXTRA andBool notBool Gstaticcalldepth << SCHED >>
+    rule Cgascap(SCHED, GCAP, GAVAIL, GEXTRA) => GCAP                                          requires GAVAIL <Int  GEXTRA orBool Gstaticcalldepth << SCHED >>
 
     rule Cextra(SCHED, ACCT, ACCTS, VALUE) => Gcall < SCHED > +Int Cnew(SCHED, ACCT, ACCTS) +Int Cxfer(SCHED, VALUE)
 
@@ -1609,8 +1609,9 @@ module ETHEREUM
 
     syntax Int ::= Cselfdestruct ( Schedule , Word , Set ) [function]
  // -----------------------------------------------------------------
-    rule Cselfdestruct(SCHED, ACCT, ACCTS) => Gselfdestruct < SCHED > +Int (Gselfdestructnewaccount < SCHED > *Int Gnewaccount < SCHED >) requires notBool ACCT in ACCTS
-    rule Cselfdestruct(SCHED, ACCT, ACCTS) => Gselfdestruct < SCHED >                                                                  requires ACCT in ACCTS
+    rule Cselfdestruct(SCHED, ACCT, ACCTS) => Gselfdestruct < SCHED > +Int Gnewaccount < SCHED > requires (notBool ACCT in ACCTS) andBool (Gselfdestructnewaccount << SCHED >>)
+    rule Cselfdestruct(SCHED, ACCT, ACCTS) => Gselfdestruct < SCHED >                            requires (notBool ACCT in ACCTS) andBool (notBool Gselfdestructnewaccount << SCHED >>)
+    rule Cselfdestruct(SCHED, ACCT, ACCTS) => Gselfdestruct < SCHED >                            requires ACCT in ACCTS
 
     syntax Int ::= #allBut64th ( Int ) [function]
  // ---------------------------------------------
@@ -1632,6 +1633,17 @@ module ETHEREUM
 // `-cSCHEDULE=<FEE_SCHEDULE>` when calling `krun` (the available `<FEE_SCHEDULE>`
 // are supplied here).
 
+// A `ScheduleFlag` is a boolean determined by the fee schedule; applying a
+// `ScheduleFlag` to a `Schedule` yields whether the flag is set or not.
+
+
+    syntax Bool ::= ScheduleFlag "<<" Schedule ">>" [function]
+ // ----------------------------------------------------------
+
+    syntax ScheduleFlag ::= "Gselfdestructnewaccount" | "Gstaticcalldepth"
+ // ----------------------------------------------------------------------
+
+
 // A `ScheduleConst` is a constant determined by the fee schedule; applying a
 // `ScheduleConst` to a `Schedule` yields the correct constant for that schedule.
 
@@ -1644,9 +1656,8 @@ module ETHEREUM
                            | "Gsstorereset" | "Rsstoreclear" | "Rselfdestruct" | "Gselfdestruct"  | "Gcreate"      | "Gcodedeposit"
                            | "Gcall"        | "Gcallvalue"   | "Gcallstipend"  | "Gnewaccount"    | "Gexp"         | "Gexpbyte"
                            | "Gmemory"      | "Gtxcreate"    | "Gtxdatazero"   | "Gtxdatanonzero" | "Gtransaction" | "Glog"
-                           | "Glogdata"     | "Glogtopic"    | "Gsha3"         | "Gsha3word"      | "Gcopy"        | "Gblockhash"
-                           | "Gquadcoeff"   | "Gselfdestructnewaccount"        | "Gstaticcalldepth"
- // -----------------------------------------------------------------------------------------------
+                           | "Glogdata"     | "Glogtopic"    | "Gsha3"         | "Gsha3word"      | "Gcopy"        | "Gblockhash"   | "Gquadcoeff"
+ // ----------------------------------------------------------------------------------------------------------------------------------------------
 
 
 // ### Defualt Schedule
@@ -1700,8 +1711,8 @@ module ETHEREUM
     rule Gextcodesize < DEFAULT > => 20
     rule Gextcodecopy < DEFAULT > => 20
 
-    rule Gselfdestructnewaccount < DEFAULT > => 0
-    rule Gstaticcalldepth        < DEFAULT > => 1
+    rule Gselfdestructnewaccount << DEFAULT >> => false
+    rule Gstaticcalldepth        << DEFAULT >> => true
 
 
 // ### Frontier Schedule
@@ -1712,6 +1723,8 @@ module ETHEREUM
     rule Gtxcreate  < FRONTIER > => 21000
     rule SCHEDCONST < FRONTIER > => SCHEDCONST < DEFAULT > requires SCHEDCONST =/=K Gtxcreate
 
+    rule SCHEDFLAG << FRONTIER >> => SCHEDFLAG << DEFAULT >>
+
 
 // ### Homestead Schedule
 
@@ -1720,24 +1733,27 @@ module ETHEREUM
  // -------------------------------
     rule SCHEDCONST < HOMESTEAD > => SCHEDCONST < DEFAULT >
 
+    rule SCHEDFLAG << HOMESTEAD >> => SCHEDFLAG << DEFAULT >>
+
 
 // ### EIP150 Schedule
 
 
     syntax Schedule ::= "EIP150"
  // ----------------------------
-    rule Gbalance                < EIP150 > => 400
-    rule Gsload                  < EIP150 > => 200
-    rule Gcall                   < EIP150 > => 700
-    rule Gselfdestruct           < EIP150 > => 5000
-    rule Gextcodesize            < EIP150 > => 700
-    rule Gextcodecopy            < EIP150 > => 700
-    rule Gselfdestructnewaccount < EIP150 > => 1
-    rule Gstaticcalldepth        < EIP150 > => 0
-    rule SCHEDCONST              < EIP150 > => SCHEDCONST < HOMESTEAD >
-      requires notBool SCHEDCONST in ( SetItem(Gbalance) SetItem(Gsload) SetItem(Gcall) SetItem(Gselfdestruct) SetItem(Gextcodesize)
-                                       SetItem(Gextcodecopy) SetItem(Gselfdestructnewaccount) SetItem(Gstaticcalldepth)
-                                     )
+    rule Gbalance      < EIP150 > => 400
+    rule Gsload        < EIP150 > => 200
+    rule Gcall         < EIP150 > => 700
+    rule Gselfdestruct < EIP150 > => 5000
+    rule Gextcodesize  < EIP150 > => 700
+    rule Gextcodecopy  < EIP150 > => 700
+    rule SCHEDCONST    < EIP150 > => SCHEDCONST < HOMESTEAD >
+      requires notBool      ( SCHEDCONST ==K Gbalance      orBool SCHEDCONST ==K Gsload       orBool SCHEDCONST ==K Gcall
+                       orBool SCHEDCONST ==K Gselfdestruct orBool SCHEDCONST ==K Gextcodesize orBool SCHEDCONST ==K Gextcodecopy
+                            )
+
+    rule Gselfdestructnewaccount << EIP150 >> => true
+    rule Gstaticcalldepth        << EIP150 >> => false
 
 
 // ### EIP158 Schedule
@@ -1746,8 +1762,9 @@ module ETHEREUM
     syntax Schedule ::= "EIP158"
  // ----------------------------
     rule Gexpbyte   < EIP158 > => 50
-    rule SCHEDCONST < EIP158 > => SCHEDCONST < EIP150 >
-      requires SCHEDCONST =/=K Gexpbyte
+    rule SCHEDCONST < EIP158 > => SCHEDCONST < EIP150 > requires SCHEDCONST =/=K Gexpbyte
+
+    rule SCHEDFLAG << EIP158 >> => SCHEDFLAG << EIP150 >>
 
 
 // ### Metropolis Schedule
@@ -1758,6 +1775,8 @@ module ETHEREUM
     rule Gblockhash < METROPOLIS > => 800
     rule SCHEDCONST < METROPOLIS > => SCHEDCONST < EIP158 >
       requires SCHEDCONST =/=K Gblockhash
+
+    rule SCHEDFLAG << METROPOLIS >> => SCHEDFLAG << EIP158 >>
 
 
 // EVM Program Representations
