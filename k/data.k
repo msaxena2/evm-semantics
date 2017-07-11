@@ -27,14 +27,12 @@ module EVM-DATA
 // sort `Word`.
 
 // -   `Int` is a subsort of `Word`.
-// -   `chop` interperets an interger module $2^256$.
+// -   `chop` interperets an integer module $2^256$.
 
 
     syntax Word ::= Int | chop ( Word ) [function]
  // ----------------------------------------------
-    rule chop( W:Int ) => chop ( W +Int (2 ^Int 256) ) requires W <Int 0
-    rule chop( W:Int ) => chop ( W %Int (2 ^Int 256) ) requires W >=Int (2 ^Int 256)
-    rule chop( W:Int ) => W requires W >=Int 0 andBool W <Int (2 ^Int 256)
+    rule chop( W:Int ) => W %Int (2 ^Int 256)
 
 
 // -   `bool2Word` interperets a `Bool` as a `Word`.
@@ -130,7 +128,7 @@ module EVM-DATA
                   | Word "%Word" Word [function]
  // --------------------------------------------
     rule W0:Int +Word W1:Int => chop( W0 +Int W1 )
-    rule W0:Int -Word W1:Int => chop( W0 -Int W1 )
+    rule W0:Int -Word W1:Int => chop( (W0 +Int (2 ^Int 256)) -Int W1 )
     rule W0:Int *Word W1:Int => chop( W0 *Int W1 )
     rule W0:Int /Word 0      => 0
     rule W0:Int /Word W1:Int => chop( W0 /Int W1 ) requires W1 =/=K 0
@@ -154,8 +152,14 @@ module EVM-DATA
     syntax Word ::= Word "/sWord" Word [function]
                   | Word "%sWord" Word [function]
  // ---------------------------------------------
-    rule W0:Int /sWord W1:Int => (abs(W0) /Word abs(W1)) *Word (sgn(W0) *Int sgn(W1))
-    rule W0:Int %sWord W1:Int => (abs(W0) %Word abs(W1)) *Word sgn(W0)
+    rule W0:Int /sWord W1:Int => #sgnInterp(sgn(W0) *Int sgn(W1) , abs(W0) /Word abs(W1))
+    rule W0:Int %sWord W1:Int => #sgnInterp(sgn(W0)              , abs(W0) %Word abs(W1))
+
+    syntax Word ::= #sgnInterp ( Word , Word ) [function]
+ // -----------------------------------------------------
+    rule #sgnInterp( 0  , W1 ) => 0
+    rule #sgnInterp( W0 , W1 ) => W1         requires W0 >Int 0
+    rule #sgnInterp( W0 , W1 ) => 0 -Word W1 requires W0 <Int 0
 
 
 // Comparison Operators
