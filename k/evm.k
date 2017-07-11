@@ -1481,11 +1481,25 @@ module ETHEREUM
  // ----------------------------------------------
     rule <op> #gasExec(SCHED, SSTORE INDEX VALUE) => Csstore(SCHED, INDEX, VALUE, STORAGE) ... </op>
          <id> ACCT </id>
+		 <accounts>
          <account>
            <acctID> ACCT </acctID>
            <storage> STORAGE </storage>
            ...
          </account>
+		 </accounts>
+		 requires VALUE =/=K 0 andBool notBool INDEX in_keys(STORAGE)
+		 
+    rule <op> #gasExec(SCHED, SSTORE INDEX 0) => Gsstorereset < SCHED > ... </op>
+         <id> ACCT </id>
+		 <accounts>
+         <account>
+           <acctID> ACCT </acctID>
+           <storage> STORAGE </storage>
+           ...
+         </account>
+		 </accounts>
+		 requires INDEX in_keys(STORAGE)
 
     rule <op> #gasExec(SCHED, EXP W0 0)  => Gexp < SCHED > ... </op>
     rule <op> #gasExec(SCHED, EXP W0 W1) => Gexp < SCHED > +Int (Gexpbyte < SCHED > *Int (1 +Int (log256Int(W1)))) ... </op> requires W1 =/=K 0
