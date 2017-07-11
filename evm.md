@@ -1047,7 +1047,8 @@ These operations interact with the account storage.
            <acctID> ACCT </acctID>
            <storage> STORAGE </storage>
            ...
-         </account> requires notBool INDEX in_keys(STORAGE)
+         </account>
+      requires notBool INDEX in_keys(STORAGE)
 
     rule <op> SLOAD INDEX => VALUE ~> #push ... </op>
          <id> ACCT </id>
@@ -1055,7 +1056,7 @@ These operations interact with the account storage.
            <acctID> ACCT </acctID>
            <storage> ... INDEX |-> VALUE ... </storage>
            ...
-         </account> 
+         </account>
 
     syntax BinStackOp ::= "SSTORE"
  // ------------------------------

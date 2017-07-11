@@ -1,18 +1,18 @@
 module ADD1-SPEC
     import ETHEREUM-SIMULATION
-/*
+
 rule 
 <k>  
 .
 </k>
 <mode> NORMAL </mode>
 <schedule> DEFAULT </schedule>
-<op>  #execute => #next ~> #execute</op>
+<op>  #execute => #execute</op>
 <memoryUsed> 0   </memoryUsed>
  <callStack> .List => .List </callStack>
 <localMem> .Map</localMem>
 <gas> N =>N1 </gas>
-<previousGas> 0 => N1+Int 2 </previousGas>
+<previousGas> 0 => N1+Int 20000 </previousGas>
 <pc> 0 => 26 </pc>
  <id> ACCT </id>
  <accounts>
@@ -28,9 +28,9 @@ rule
 SWAP(1) ; SUB ; PUSH(1, 4) ; JUMP ; JUMPDEST ; POP ; 
 PUSH(1, 0) ; SSTORE ; .OpCodes
 )</program>
-requires N>=Int (28*Int I )+Int 22 andBool I>=Int 1  
-ensures N-Int N1==Int (28*Int I )+Int 22
-*/
+requires N>=Int (52*Int I) +Int 20032 andBool I>=Int 1  
+ensures N-Int N1==Int (52*Int I )+Int 20032
+
 
 //loop invariant
 rule
@@ -42,7 +42,7 @@ rule
 <callStack> .List => .List </callStack>
 <localMem>.Map</localMem>
 <gas> N =>N1 </gas>
-<previousGas> N +Int 3 => N1+Int _:Int </previousGas>
+<previousGas> N +Int 8 => N1+Int 20000 </previousGas>
 <pc> 4=>26</pc>
  <id> ACCT </id>
  <accounts>
@@ -58,6 +58,7 @@ SWAP(1) ; SUB ; PUSH(1, 4) ; JUMP ; JUMPDEST ; POP ;
 PUSH(1, 0) ; SSTORE ; .OpCodes)</program>
 <wordStack> I1:Int : I2:Int : .WordStack =>.WordStack </wordStack>
 
-requires N>=Int (2800*Int I1) +Int 25800 andBool I1>=Int 0  andBool I1<=Int I andBool I2>=Int 0
-//ensures N-Int N1==Int (28*Int I1 )+Int 18
+requires N>=Int (52*Int I1) +Int 20026 andBool I1>=Int 0  andBool I1<=Int I andBool I2>=Int 0
+ensures N-Int N1==Int (52*Int I1 )+Int 20026
+
 endmodule
