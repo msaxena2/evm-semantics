@@ -44,8 +44,8 @@ module ETHEREUM
 
                       <op>            .K         </op>
                       <output>        .WordStack </output>              // H_RETURN
-                      <memoryUsed>    0:Word     </memoryUsed>          // \mu_i
-                      <callDepth>     0:Word     </callDepth>
+                      <memoryUsed>    0          </memoryUsed>          // \mu_i
+                      <callDepth>     0          </callDepth>
                       <callStack>     .List      </callStack>
                       <interimStates> .List      </interimStates>
                       <callLog>       .Set       </callLog>
@@ -54,39 +54,39 @@ module ETHEREUM
                         <program> .Map </program>                       // I_b
 
                         // I_*
-                        <id>        0:Word     </id>                    // I_a
-                        <caller>    0:Word     </caller>                // I_s
+                        <id>        0          </id>                    // I_a
+                        <caller>    0          </caller>                // I_s
                         <callData>  .WordStack </callData>              // I_d
-                        <callValue> 0:Word     </callValue>             // I_v
+                        <callValue> 0          </callValue>             // I_v
 
                         // \mu_*
                         <wordStack>   .WordStack </wordStack>           // \mu_s
                         <localMem>    .Map       </localMem>            // \mu_m
-                        <pc>          0:Word     </pc>                  // \mu_pc
-                        <gas>         0:Word     </gas>                 // \mu_g
-                        <previousGas> 0:Word     </previousGas>
+                        <pc>          0          </pc>                  // \mu_pc
+                        <gas>         0          </gas>                 // \mu_g
+                        <previousGas> 0          </previousGas>
                       </txExecState>
 
                       // A_* (execution substate)
                       <substate>
-                        <selfDestruct> .Set   </selfDestruct>           // A_s
-                        <log>          .Set   </log>                    // A_l
-                        <refund>       0:Word </refund>                 // A_r
+                        <selfDestruct> .Set </selfDestruct>             // A_s
+                        <log>          .Set </log>                      // A_l
+                        <refund>       0    </refund>                   // A_r
                       </substate>
 
                       // Immutable during a single transaction
                       // -------------------------------------
 
-                      <gasPrice> 0:Word </gasPrice>                     // I_p
-                      <origin>   0:Word </origin>                       // I_o
+                      <gasPrice> 0 </gasPrice>                          // I_p
+                      <origin>   0 </origin>                            // I_o
 
                       // I_H* (block information)
-                      <gasLimit>     0:Word </gasLimit>                 // I_Hl
-                      <coinbase>     0:Word </coinbase>                 // I_Hc
-                      <timestamp>    0:Word </timestamp>                // I_Hs
-                      <number>       0:Word </number>                   // I_Hi
-                      <previousHash> 0:Word </previousHash>             // I_Hp
-                      <difficulty>   0:Word </difficulty>               // I_Hd
+                      <gasLimit>     0 </gasLimit>                      // I_Hl
+                      <coinbase>     0 </coinbase>                      // I_Hc
+                      <timestamp>    0 </timestamp>                     // I_Hs
+                      <number>       0 </number>                        // I_Hi
+                      <previousHash> 0 </previousHash>                  // I_Hp
+                      <difficulty>   0 </difficulty>                    // I_Hd
 
                     </evm>
 
@@ -109,11 +109,11 @@ module ETHEREUM
 
 
 
-                          <acctID>  0:Word </acctID>
-                          <balance> 0:Word </balance>
-                          <code>    .Map   </code>
-                          <storage> .Map   </storage>
-                          <acctMap> .Map   </acctMap>
+                          <acctID>  0    </acctID>
+                          <balance> 0    </balance>
+                          <code>    .Map </code>
+                          <storage> .Map </storage>
+                          <acctMap> .Map </acctMap>
                         </account>
                       </accounts>
 
@@ -130,11 +130,11 @@ module ETHEREUM
 
 
 
-                          <msgID>  0:Word </msgID>
-                          <to>     0:Word </to>
-                          <from>   0:Word </from>
-                          <amount> 0:Word </amount>
-                          <data>   .Map   </data>
+                          <msgID>  0    </msgID>
+                          <to>     0    </to>
+                          <from>   0    </from>
+                          <amount> 0    </amount>
+                          <data>   .Map </data>
                         </message>
                       </messages>
 
@@ -180,8 +180,8 @@ module ETHEREUM
 // -   `#dropCallStack` removes the top element of the `callStack`.
 
 
-    syntax State ::= "{" Word "|" Word "|" Map "|" Word "|" WordStack "|" Word "|" WordStack "|" Map "|" Word "}"
- // -------------------------------------------------------------------------------------------------------------
+    syntax State ::= "{" Int "|" Int "|" Map "|" Int "|" WordStack "|" Int "|" WordStack "|" Map "|" Int "}"
+ // --------------------------------------------------------------------------------------------------------
 
     syntax InternalOp ::= "#pushCallStack"
  // --------------------------------------
@@ -224,11 +224,11 @@ module ETHEREUM
 // -   `#dropWorldState` removes the top element of the `interimStates`.
 
 
-    syntax Account ::= "{" Word "|" Word "|" Map "|" Map "|" Map "}"
- // ----------------------------------------------------------------
+    syntax Account ::= "{" Int "|" Int "|" Map "|" Map "|" Map "}"
+ // --------------------------------------------------------------
 
-    syntax InternalOp ::= "#pushWorldState" | "#pushWorldStateAux" Set | "#pushAccount" Word
- // ----------------------------------------------------------------------------------------
+    syntax InternalOp ::= "#pushWorldState" | "#pushWorldStateAux" Set | "#pushAccount" Int
+ // ---------------------------------------------------------------------------------------
     rule <op> #pushWorldState => #pushWorldStateAux ACCTS ... </op>
          <activeAccounts> ACCTS </activeAccounts>
          <interimStates> (.List => ListItem(.Set)) ... </interimStates>
@@ -285,8 +285,8 @@ module ETHEREUM
     syntax KItem ::= Exception
     syntax Exception ::= "#exception" | "#end"
  // ------------------------------------------
-    rule <op> EX:Exception ~> (W:Word    => .) ... </op>
-    rule <op> EX:Exception ~> (OP:OpCode => .) ... </op>
+    rule <op> EX:Exception ~> (_:Int    => .) ... </op>
+    rule <op> EX:Exception ~> (_:OpCode => .) ... </op>
 
     syntax KItem ::= "#?" K ":" K "?#"
  // ----------------------------------
@@ -392,9 +392,9 @@ module ETHEREUM
  // --------------------------------------
     rule #gasBreaks => (SetItem(JUMP) SetItem(JUMPI) SetItem(JUMPDEST))
 
-    syntax InternalOp ::= "#setPC"  Word
-                        | "#setGas" Word
- // ------------------------------------
+    syntax InternalOp ::= "#setPC"  Int
+                        | "#setGas" Int
+ // -----------------------------------
     rule <op> #setPC PCOUNT  => . ... </op> <pc> _ => PCOUNT </pc>
     rule <op> #setGas GAVAIL => . ... </op> <gas> _ => GAVAIL </gas>
 
@@ -410,9 +410,9 @@ module ETHEREUM
          <gas> _ => 1000000000 </gas>
          <analysis> _ => ("blocks" |-> .List) </analysis>
 
-    syntax Summary ::= "{" Word "|" Word "|" Word "}"
-                     | "{" Word "==>" Word "|" Word "|" Word "}"
- // ------------------------------------------------------------
+    syntax Summary ::= "{" Int "|" Int "|" Int "}"
+                     | "{" Int "==>" Int "|" Int "|" Int "}"
+ // --------------------------------------------------------
 
     syntax InternalOp ::= "#beginSummary"
  // -------------------------------------
@@ -533,18 +533,18 @@ module ETHEREUM
 // address (modulo 160 bits), so the `#addr?` function performs that check.
 
 
-    syntax InternalOp ::= UnStackOp Word
-                        | BinStackOp Word Word
-                        | TernStackOp Word Word Word
-                        | QuadStackOp Word Word Word Word
- // -----------------------------------------------------
+    syntax InternalOp ::= UnStackOp Int
+                        | BinStackOp Int Int
+                        | TernStackOp Int Int Int
+                        | QuadStackOp Int Int Int Int
+ // -------------------------------------------------
     rule <op> #exec [ UOP:UnStackOp   => UOP #addr?(UOP, W0)          ] ... </op> <wordStack> W0 : WS                => WS </wordStack>
     rule <op> #exec [ BOP:BinStackOp  => BOP #addr?(BOP, W0) W1       ] ... </op> <wordStack> W0 : W1 : WS           => WS </wordStack>
     rule <op> #exec [ TOP:TernStackOp => TOP #addr?(TOP, W0) W1 W2    ] ... </op> <wordStack> W0 : W1 : W2 : WS      => WS </wordStack>
     rule <op> #exec [ QOP:QuadStackOp => QOP #addr?(QOP, W0) W1 W2 W3 ] ... </op> <wordStack> W0 : W1 : W2 : W3 : WS => WS </wordStack>
 
-    syntax Word ::= "#addr?" "(" OpCode "," Word ")" [function]
- // -----------------------------------------------------------
+    syntax Int ::= "#addr?" "(" OpCode "," Int ")" [function]
+ // ---------------------------------------------------------
     rule #addr?(BALANCE,      W) => #addr(W)
     rule #addr?(EXTCODESIZE,  W) => #addr(W)
     rule #addr?(EXTCODECOPY,  W) => #addr(W)
@@ -563,9 +563,9 @@ module ETHEREUM
 // The `CallOp` opcodes all interperet their second argument as an address.
 
 
-    syntax InternalOp ::= CallSixOp Word Word      Word Word Word Word
-                        | CallOp    Word Word Word Word Word Word Word
- // ------------------------------------------------------------------
+    syntax InternalOp ::= CallSixOp Int Int     Int Int Int Int
+                        | CallOp    Int Int Int Int Int Int Int
+ // -----------------------------------------------------------
     rule <op> #exec [ CSO:CallSixOp => CSO W0 #addr(W1)    W2 W3 W4 W5 ] ... </op> <wordStack> W0 : W1 : W2 : W3 : W4 : W5 : WS      => WS </wordStack>
     rule <op> #exec [ CO:CallOp     => CO  W0 #addr(W1) W2 W3 W4 W5 W6 ] ... </op> <wordStack> W0 : W1 : W2 : W3 : W4 : W5 : W6 : WS => WS </wordStack>
 
@@ -583,8 +583,8 @@ module ETHEREUM
          <memoryUsed> MU => MU' </memoryUsed> <schedule> SCHED </schedule>
       requires MU' <Int (2 ^Int 256)
 
-    syntax K ::= "{" OpCode "|" Word "}"
- // ------------------------------------
+    syntax K ::= "{" OpCode "|" Int "}"
+ // -----------------------------------
     rule <op> G:Int ~> #deductGas => #exception ... </op> <gas> GAVAIL                  </gas> requires GAVAIL <Int G
     rule <op> G:Int ~> #deductGas => .          ... </op> <gas> GAVAIL => GAVAIL -Int G </gas> <previousGas> _ => GAVAIL </previousGas> requires GAVAIL >=Int G
 
@@ -621,8 +621,8 @@ module ETHEREUM
 // `wordStack` and `localMem`).
 
 
-    syntax SubstateLogEntry ::= "{" Word "|" WordStack "|" WordStack "}"
- // --------------------------------------------------------------------
+    syntax SubstateLogEntry ::= "{" Int "|" WordStack "|" WordStack "}"
+ // -------------------------------------------------------------------
 
 
 // After executing a transaction, it's necessary to have the effect of the substate
@@ -713,16 +713,16 @@ module ETHEREUM
 
     syntax InternalOp ::= "#push" | "#setStack" WordStack
  // -----------------------------------------------------
-    rule <op> W0:Word ~> #push => . ... </op> <wordStack> WS => W0 : WS </wordStack>
-    rule <op> #setStack WS     => . ... </op> <wordStack> _  => WS      </wordStack>
+    rule <op> W0:Int ~> #push => . ... </op> <wordStack> WS => W0 : WS </wordStack>
+    rule <op> #setStack WS    => . ... </op> <wordStack> _  => WS      </wordStack>
 
 
 // -   `#newAccount_` allows declaring a new empty account with the given address
 //     (and assumes the rounding to 160 bits has already occured).
 
 
-    syntax InternalOp ::= "#newAccount" Word
- // ----------------------------------------
+    syntax InternalOp ::= "#newAccount" Int
+ // ---------------------------------------
     rule <op> #newAccount ACCT => . ... </op>
          <activeAccounts> ACCTS </activeAccounts>
       requires ACCT in ACCTS
@@ -748,8 +748,8 @@ module ETHEREUM
 //     destination account if it doesn't exist.
 
 
-    syntax InternalOp ::= "#transferFunds" Word Word Word
- // -----------------------------------------------------
+    syntax InternalOp ::= "#transferFunds" Int Int Int
+ // --------------------------------------------------
     rule <op> #transferFunds ACCTFROM ACCTTO VALUE => . ... </op>
          <account>
            <acctID> ACCTFROM </acctID>
@@ -784,8 +784,8 @@ module ETHEREUM
 // garbage bytes in the input program.
 
 
-    syntax InvalidOp ::= INVALID ( Word )
- // -------------------------------------
+    syntax InvalidOp ::= INVALID ( Int )
+ // ------------------------------------
 
 
 // ### Stack Manipulations
@@ -797,13 +797,13 @@ module ETHEREUM
  // --------------------------
     rule <op> POP W => . ... </op>
 
-    syntax StackOp ::= DUP ( Word ) | SWAP ( Word )
- // -----------------------------------------------
+    syntax StackOp ::= DUP ( Int ) | SWAP ( Int )
+ // ---------------------------------------------
     rule <op> DUP(N)  WS:WordStack => #setStack ((WS [ N -Int 1 ]) : WS)                      ... </op>
     rule <op> SWAP(N) (W0 : WS)    => #setStack ((WS [ N -Int 1 ]) : (WS [ N -Int 1 := W0 ])) ... </op>
 
-    syntax PushOp ::= PUSH ( Word , Word )
- // --------------------------------------
+    syntax PushOp ::= PUSH ( Int , Int )
+ // ------------------------------------
     rule <op> PUSH(_, W) => W ~> #push ... </op>
 
 
@@ -873,12 +873,12 @@ module ETHEREUM
 
     syntax BinStackOp ::= "LT" | "GT" | "EQ"
  // ----------------------------------------
-    rule <op> LT W0:Int W1:Int => 1 ~> #push ... </op>  requires W0 <Int   W1
-    rule <op> LT W0:Int W1:Int => 0 ~> #push ... </op>  requires W0 >=Int  W1
-    rule <op> GT W0:Int W1:Int => 1 ~> #push ... </op>  requires W0 >Int   W1
-    rule <op> GT W0:Int W1:Int => 0 ~> #push ... </op>  requires W0 <=Int  W1
-    rule <op> EQ W0:Int W1:Int => 1 ~> #push ... </op>  requires W0 ==Int  W1
-    rule <op> EQ W0:Int W1:Int => 0 ~> #push ... </op>  requires W0 =/=Int W1
+    rule <op> LT W0 W1 => 1 ~> #push ... </op>  requires W0 <Int   W1
+    rule <op> LT W0 W1 => 0 ~> #push ... </op>  requires W0 >=Int  W1
+    rule <op> GT W0 W1 => 1 ~> #push ... </op>  requires W0 >Int   W1
+    rule <op> GT W0 W1 => 0 ~> #push ... </op>  requires W0 <=Int  W1
+    rule <op> EQ W0 W1 => 1 ~> #push ... </op>  requires W0 ==Int  W1
+    rule <op> EQ W0 W1 => 0 ~> #push ... </op>  requires W0 =/=Int W1
 
     syntax BinStackOp ::= "SLT" | "SGT"
  // -----------------------------------
@@ -995,8 +995,8 @@ module ETHEREUM
 
 
     syntax BinStackOp ::= LogOp
-    syntax LogOp ::= LOG ( Word )
- // -----------------------------
+    syntax LogOp ::= LOG ( Int )
+ // ----------------------------
     rule <op> LOG(N) MEMSTART MEMWIDTH => . ... </op>
          <id> ACCT </id>
          <wordStack> WS => #drop(N, WS) </wordStack>
@@ -1128,8 +1128,8 @@ module ETHEREUM
 //     can compare them against the test-set.
 
 
-    syntax Call ::= "{" Word "|" Word "|" Word "|" WordStack "}"
- // ------------------------------------------------------------
+    syntax Call ::= "{" Int "|" Int "|" Int "|" WordStack "}"
+ // ---------------------------------------------------------
 
 
 // -   `#call_____` takes the calling account, the account to execute as, the code
@@ -1138,9 +1138,9 @@ module ETHEREUM
 //     place the returned data in memory.
 
 
-    syntax InternalOp ::= "#call" Word Word Map Word Word WordStack
-                        | "#mkCall" Word Word Map Word Word WordStack
- // -----------------------------------------------------------------
+    syntax InternalOp ::= "#call" Int Int Map Int Int WordStack
+                        | "#mkCall" Int Int Map Int Int WordStack
+ // -------------------------------------------------------------
     rule <mode> EXECMODE </mode>
          <schedule> SCHED </schedule>
          <op> #call ACCTFROM ACCTTO CODE GCAP VALUE ARGS
@@ -1172,8 +1172,8 @@ module ETHEREUM
          <localMem> _ => #asMapWordStack(ARGS) </localMem>
          <program> _ => CODE </program>
 
-    syntax KItem ::= "#return" Word Word
- // ------------------------------------
+    syntax KItem ::= "#return" Int Int
+ // ----------------------------------
     rule <op> #exception ~> #return _ _
            => #popCallStack ~> #popWorldState  ~> 0 ~> #push
           ...
@@ -1189,9 +1189,9 @@ module ETHEREUM
          <output> OUT </output>
          <gas> GAVAIL </gas>
 
-    syntax InternalOp ::= "#refund" Word
-                        | "#setLocalMem" Word Word WordStack
- // --------------------------------------------------------
+    syntax InternalOp ::= "#refund" Int
+                        | "#setLocalMem" Int Int WordStack
+ // ------------------------------------------------------
     rule <op> #refund G => . ... </op> <gas> GAVAIL => GAVAIL +Int G </gas>
 
     rule <op> #setLocalMem START WIDTH WS => . ... </op>
@@ -1202,8 +1202,8 @@ module ETHEREUM
 //     addresses 1 through 4.
 
 
-    syntax InternalOp ::= #precompiled ( Word )
- // -------------------------------------------
+    syntax InternalOp ::= #precompiled ( Int )
+ // ------------------------------------------
 
 
 // For each `CALL*` operation, we make a corresponding call to `#call` and a
@@ -1274,9 +1274,9 @@ module ETHEREUM
 //     code deposit can be paid, indicating an error if not.
 
 
-    syntax InternalOp ::= "#create" Word Word Word Map
-                        | "#mkCreate" Map Word Word
- // -----------------------------------------------
+    syntax InternalOp ::= "#create" Int Int Int Map
+                        | "#mkCreate" Map Int Int
+ // ---------------------------------------------
     rule <op> #create ACCTFROM ACCTTO VALUE INITCODE
            => #pushCallStack ~> #pushWorldState
            ~> #transferFunds ACCTFROM ACCTTO VALUE
@@ -1308,8 +1308,8 @@ module ETHEREUM
           ...
          </account>
 
-    syntax KItem ::= "#codeDeposit" Word
- // ------------------------------------
+    syntax KItem ::= "#codeDeposit" Int
+ // -----------------------------------
     rule <op> #exception ~> #codeDeposit _ => #popCallStack ~> #popWorldState ~> 0 ~> #push ... </op>
 
     rule <mode> EXECMODE </mode>
@@ -1353,7 +1353,7 @@ module ETHEREUM
          <schedule> SCHED </schedule>
          <id> ACCT </id>
          <selfDestruct> SDS (.Set => SetItem(ACCT)) </selfDestruct>
-         <refund> RF => #ifWord ACCT in SDS #then RF #else RF +Word Rselfdestruct < SCHED > #fi </refund>
+         <refund> RF => #ifInt ACCT in SDS #then RF #else RF +Word Rselfdestruct < SCHED > #fi </refund>
          <account>
            <acctID> ACCT </acctID>
            <balance> BALFROM </balance>
@@ -1480,8 +1480,8 @@ module ETHEREUM
 //     the intrinsic execution gas of each opcode.
 
 
-    syntax Word ::= #gasExec ( Schedule , OpCode )
- // ----------------------------------------------
+    syntax InternalOp ::= #gasExec ( Schedule , OpCode )
+ // ----------------------------------------------------
     rule <op> #gasExec(SCHED, SSTORE INDEX VALUE) => Csstore(SCHED, INDEX, VALUE, STORAGE) ... </op>
          <id> ACCT </id>
          <account>
@@ -1582,18 +1582,18 @@ module ETHEREUM
 // the relevant state.
 
 
-    syntax Int ::= Csstore ( Schedule , Word , Word , Map ) [function]
- // ------------------------------------------------------------------
+    syntax Int ::= Csstore ( Schedule , Int , Int , Map ) [function]
+ // ----------------------------------------------------------------
     rule Csstore(SCHED, INDEX, VALUE, STORAGE) => Gsstoreset < SCHED >   requires VALUE =/=K 0 andBool notBool INDEX in_keys(STORAGE)
     rule Csstore(SCHED, INDEX, VALUE, STORAGE) => Gsstorereset < SCHED > requires VALUE ==K 0  orBool  INDEX in_keys(STORAGE)
 
-    syntax Int ::= Ccall    ( Schedule , Word , Set , Word , Word , Word ) [function]
-                 | Ccallgas ( Schedule , Word , Set , Word , Word , Word ) [function]
-                 | Cgascap  ( Schedule , Word , Word , Word )              [function]
-                 | Cextra   ( Schedule , Word , Set , Word )               [function]
-                 | Cxfer    ( Schedule , Word )                            [function]
-                 | Cnew     ( Schedule , Word , Set )                      [function]
- // ---------------------------------------------------------------------------------
+    syntax Int ::= Ccall    ( Schedule , Int , Set , Int , Int , Int ) [function]
+                 | Ccallgas ( Schedule , Int , Set , Int , Int , Int ) [function]
+                 | Cgascap  ( Schedule , Int , Int , Int )             [function]
+                 | Cextra   ( Schedule , Int , Set , Int )             [function]
+                 | Cxfer    ( Schedule , Int )                         [function]
+                 | Cnew     ( Schedule , Int , Set )                   [function]
+ // -----------------------------------------------------------------------------
     rule Ccall(SCHED, ACCT, ACCTS, GCAP, GAVAIL, VALUE) => Cextra(SCHED, ACCT, ACCTS, VALUE) +Int Cgascap(SCHED, GCAP, GAVAIL, Cextra(SCHED, ACCT, ACCTS, VALUE))
 
     rule Ccallgas(SCHED, ACCT, ACCTS, GCAP, GAVAIL, 0)     => Cgascap(SCHED, GCAP, GAVAIL, Cextra(SCHED, ACCT, ACCTS,     0))
@@ -1610,8 +1610,8 @@ module ETHEREUM
     rule Cnew(SCHED, ACCT, ACCTS) => Gnewaccount < SCHED > requires notBool ACCT in ACCTS
     rule Cnew(SCHED, ACCT, ACCTS) => 0                     requires ACCT in ACCTS
 
-    syntax Int ::= Cselfdestruct ( Schedule , Word , Set ) [function]
- // -----------------------------------------------------------------
+    syntax Int ::= Cselfdestruct ( Schedule , Int , Set ) [function]
+ // ----------------------------------------------------------------
     rule Cselfdestruct(SCHED, ACCT, ACCTS) => Gselfdestruct < SCHED > +Int Gnewaccount < SCHED > requires (notBool ACCT in ACCTS) andBool (Gselfdestructnewaccount << SCHED >>)
     rule Cselfdestruct(SCHED, ACCT, ACCTS) => Gselfdestruct < SCHED >                            requires (notBool ACCT in ACCTS) andBool (notBool Gselfdestructnewaccount << SCHED >>)
     rule Cselfdestruct(SCHED, ACCT, ACCTS) => Gselfdestruct < SCHED >                            requires ACCT in ACCTS
@@ -1810,7 +1810,7 @@ module ETHEREUM
 
 // -   `#dasmOpCodes` interperets `WordStack` as an `OpCodes`.
 // -   `#dasmPUSH` handles the case of a `PushOp`.
-// -   `#dasmOpCode` interperets a `Word` as an `OpCode`.
+// -   `#dasmOpCode` interperets a `Int` as an `OpCode`.
 
 
     syntax OpCodes ::= #dasmOpCodes ( WordStack ) [function]
@@ -1823,12 +1823,12 @@ module ETHEREUM
     rule #dasmOpCodes( W : WS )     => LOG(W -Int 160)  ; #dasmOpCodes(WS) requires W >=Int 160 andBool W <=Int 164
     rule #dasmOpCodes( W : WS )     => #dasmPUSH( W -Int 95 , WS )         requires W >=Int 96  andBool W <=Int 127
 
-    syntax OpCodes ::= #dasmPUSH ( Word , WordStack ) [function]
- // ------------------------------------------------------------
+    syntax OpCodes ::= #dasmPUSH ( Int , WordStack ) [function]
+ // -----------------------------------------------------------
     rule #dasmPUSH( W , WS ) => PUSH(W, #asWord(#take(W, WS))) ; #dasmOpCodes(#drop(W, WS))
 
-    syntax OpCode ::= #dasmOpCode ( Word ) [function]
- // -------------------------------------------------
+    syntax OpCode ::= #dasmOpCode ( Int ) [function]
+ // ------------------------------------------------
     rule #dasmOpCode(   0 ) => STOP
     rule #dasmOpCode(   1 ) => ADD
     rule #dasmOpCode(   2 ) => MUL
@@ -1964,9 +1964,9 @@ module ETHEREUM
     rule #asmOpCodes( DELEGATECALL ; OPS ) => 244 : #asmOpCodes(OPS)
     rule #asmOpCodes( INVALID(W)   ; OPS ) => W   : #asmOpCodes(OPS)
     rule #asmOpCodes( SELFDESTRUCT ; OPS ) => 255 : #asmOpCodes(OPS)
-    rule #asmOpCodes( DUP(W)       ; OPS ) => W +Word 127 : #asmOpCodes(OPS)
-    rule #asmOpCodes( SWAP(W)      ; OPS ) => W +Word 143 : #asmOpCodes(OPS)
-    rule #asmOpCodes( LOG(W)       ; OPS ) => W +Word 160 : #asmOpCodes(OPS)
-    rule #asmOpCodes( PUSH(N, W)   ; OPS ) => N +Word 95  : (#padToWidth(N, #asByteStack(W)) ++ #asmOpCodes(OPS))
+    rule #asmOpCodes( DUP(W)       ; OPS ) => W +Int 127 : #asmOpCodes(OPS)
+    rule #asmOpCodes( SWAP(W)      ; OPS ) => W +Int 143 : #asmOpCodes(OPS)
+    rule #asmOpCodes( LOG(W)       ; OPS ) => W +Int 160 : #asmOpCodes(OPS)
+    rule #asmOpCodes( PUSH(N, W)   ; OPS ) => N +Int 95  : (#padToWidth(N, #asByteStack(W)) ++ #asmOpCodes(OPS))
 endmodule
 
