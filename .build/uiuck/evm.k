@@ -532,6 +532,8 @@ module ETHEREUM
 // sort of the opcode. Some of them require an argument to be interpereted as an
 // address (modulo 160 bits), so the `#addr?` function performs that check.
 
+// TUTORIAL: Fill in the semantics of `#exec` for a `TOP:TernStackOp`.
+
 
     syntax InternalOp ::= UnStackOp Int
                         | BinStackOp Int Int
@@ -540,7 +542,6 @@ module ETHEREUM
  // -------------------------------------------------
     rule <op> #exec [ UOP:UnStackOp   => UOP #addr?(UOP, W0)          ] ... </op> <wordStack> W0 : WS                => WS </wordStack>
     rule <op> #exec [ BOP:BinStackOp  => BOP #addr?(BOP, W0) W1       ] ... </op> <wordStack> W0 : W1 : WS           => WS </wordStack>
-    rule <op> #exec [ TOP:TernStackOp => TOP #addr?(TOP, W0) W1 W2    ] ... </op> <wordStack> W0 : W1 : W2 : WS      => WS </wordStack>
     rule <op> #exec [ QOP:QuadStackOp => QOP #addr?(QOP, W0) W1 W2 W3 ] ... </op> <wordStack> W0 : W1 : W2 : W3 : WS => WS </wordStack>
 
     syntax Int ::= "#addr?" "(" OpCode "," Int ")" [function]
@@ -863,6 +864,8 @@ module ETHEREUM
 // instead. This makes reasoning about `MLOAD` and `MSTORE` much simpler to reason
 // about (we do not have to chop up a word into 32 bytes/reassemble it).
 
+// TUTORIAL: Fill in the semantics of `MSTORE` when not in `EVMPRIME` mode.
+
 
     syntax UnStackOp ::= "MLOAD"
  // ----------------------------
@@ -887,11 +890,6 @@ module ETHEREUM
 
     syntax BinStackOp ::= "MSTORE"
  // ------------------------------
-    rule <mode> EXECMODE </mode>
-         <op> MSTORE INDEX VALUE => . ... </op>
-         <localMem> LM => LM [ INDEX := #padToWidth(32, #asByteStack(VALUE)) ] </localMem>
-      requires EXECMODE =/=K EVMPRIME
-
     rule <mode> EVMPRIME </mode>
          <op> MSTORE INDEX VALUE => . ... </op>
          <localMem> LM => LM [ INDEX <- VALUE ] </localMem>
@@ -911,6 +909,9 @@ module ETHEREUM
     rule <mode> EVMPRIME </mode>
          <op> MSTORE8 _ _ => #exception ... </op>
 
+
+// TUTORIAL: Add high-level opcodes `WMLOAD` and `WMSTORE` for word-aligned `MLOAD`
+// and `MSTORE`.
 
 // ### Expressions
 
@@ -981,19 +982,20 @@ module ETHEREUM
 
 // These operators make queries about the current execution state.
 
+// TUTORIAL: Fill in the semantics of `GASLIMIT`, `NUMBER`, `MSIZE`, and `CODECOPY`
+// (`CODECOPY` only when not in `EVMPRIME` mode).
+
 
     syntax NullStackOp ::= "PC" | "GAS" | "GASPRICE" | "GASLIMIT"
  // -------------------------------------------------------------
     rule <op> PC       => PCOUNT ~> #push ... </op> <pc> PCOUNT </pc>
     rule <op> GAS      => GAVAIL ~> #push ... </op> <gas> GAVAIL </gas>
     rule <op> GASPRICE => GPRICE ~> #push ... </op> <gasPrice> GPRICE </gasPrice>
-    rule <op> GASLIMIT => GLIMIT ~> #push ... </op> <gasLimit> GLIMIT </gasLimit>
 
     syntax NullStackOp ::= "COINBASE" | "TIMESTAMP" | "NUMBER" | "DIFFICULTY"
  // -------------------------------------------------------------------------
     rule <op> COINBASE   => CB   ~> #push ... </op> <coinbase> CB </coinbase>
     rule <op> TIMESTAMP  => TS   ~> #push ... </op> <timestamp> TS </timestamp>
-    rule <op> NUMBER     => NUMB ~> #push ... </op> <number> NUMB </number>
     rule <op> DIFFICULTY => DIFF ~> #push ... </op> <difficulty> DIFF </difficulty>
 
     syntax NullStackOp ::= "ADDRESS" | "ORIGIN" | "CALLER" | "CALLVALUE"
@@ -1005,7 +1007,6 @@ module ETHEREUM
 
     syntax NullStackOp ::= "MSIZE"
  // ------------------------------
-    rule <op> MSIZE => 32 *Word MU ~> #push ... </op> <memoryUsed> MU </memoryUsed>
 
     syntax NullStackOp ::= "CODESIZE"
  // ---------------------------------
@@ -1018,12 +1019,6 @@ module ETHEREUM
 
     syntax TernStackOp ::= "CODECOPY"
  // ---------------------------------
-    rule <mode> EXECMODE </mode>
-         <op> CODECOPY MEMSTART PGMSTART WIDTH => . ... </op>
-         <program> PGM </program>
-         <localMem> LM => LM [ MEMSTART := #asmOpCodes(#asOpCodes(PGM)) [ PGMSTART .. WIDTH ] ] </localMem>
-      requires EXECMODE =/=K EVMPRIME
-
     rule <mode> EVMPRIME </mode>
          <op> CODECOPY _ _ _ => #exception ... </op>
 
@@ -1036,6 +1031,8 @@ module ETHEREUM
 
 // The `JUMP*` family of operations affect the current program counter.
 
+// TUTORIAL: Fill in the semantics of `JUMPI`.
+
 
     syntax NullStackOp ::= "JUMPDEST"
  // ---------------------------------
@@ -1047,8 +1044,6 @@ module ETHEREUM
 
     syntax BinStackOp ::= "JUMPI"
  // -----------------------------
-    rule <op> JUMPI DEST I => . ... </op> <pc> _      => DEST          </pc> requires I =/=K 0
-    rule <op> JUMPI DEST 0 => . ... </op> <pc> PCOUNT => PCOUNT +Int 1 </pc>
 
 
 // ### `STOP` and `RETURN`
@@ -1117,19 +1112,11 @@ module ETHEREUM
 // specified. For now, I assume that they instantiate an empty account and use the
 // empty data.
 
+// TUTORIAL: Fill in the semantics of `BALANCE`.
+
 
     syntax UnStackOp ::= "BALANCE"
  // ------------------------------
-    rule <op> BALANCE ACCT => BAL ~> #push ... </op>
-         <account>
-           <acctID> ACCT </acctID>
-           <balance> BAL </balance>
-           ...
-         </account>
-
-    rule <op> BALANCE ACCT => #newAccount ACCT ~> 0 ~> #push ... </op>
-         <activeAccounts> ACCTS </activeAccounts>
-      requires notBool ACCT in ACCTS
 
     syntax UnStackOp ::= "EXTCODESIZE"
  // ----------------------------------
@@ -1180,6 +1167,8 @@ module ETHEREUM
 
 // These operations interact with the account storage.
 
+// TUTORIAL: Fill in the semantics of `SSTORE`.
+
 
     syntax UnStackOp ::= "SLOAD"
  // ----------------------------
@@ -1201,33 +1190,6 @@ module ETHEREUM
 
     syntax BinStackOp ::= "SSTORE"
  // ------------------------------
-    rule <op> SSTORE INDEX 0 => . ... </op>
-         <id> ACCT </id>
-         <account>
-           <acctID> ACCT </acctID>
-           <storage> ... (INDEX |-> VALUE => .Map) ... </storage>
-           ...
-         </account>
-         <refund> R => R +Word Rsstoreclear < SCHED > </refund>
-         <schedule> SCHED </schedule>
-
-    rule <op> SSTORE INDEX 0 => . ... </op>
-         <id> ACCT </id>
-         <account>
-           <acctID> ACCT </acctID>
-           <storage> STORAGE </storage>
-           ...
-         </account>
-      requires notBool (INDEX in_keys(STORAGE))
-
-    rule <op> SSTORE INDEX VALUE => . ... </op>
-         <id> ACCT </id>
-         <account>
-           <acctID> ACCT </acctID>
-           <storage> STORAGE => STORAGE [ INDEX <- VALUE ] </storage>
-           ...
-         </account>
-      requires VALUE =/=K 0
 
 
 // ### Call Operations
@@ -1491,6 +1453,8 @@ module ETHEREUM
 // -   `#memoryUsageUpdate` is the function `M` in appendix H of the yellowpaper
 //     which helps track the memory used.
 
+// TUTORIAL: Fill in the semantics of `#memory` for `RETURN`.
+
 
     syntax Int ::= #memory ( OpCode , Int ) [function]
  // --------------------------------------------------
@@ -1506,7 +1470,6 @@ module ETHEREUM
     rule #memory ( CALLDATACOPY START _ WIDTH  , MU ) => #memoryUsageUpdate(MU, START, WIDTH)
 
     rule #memory ( CREATE _ START WIDTH , MU ) => #memoryUsageUpdate(MU, START, WIDTH)
-    rule #memory ( RETURN START WIDTH   , MU ) => #memoryUsageUpdate(MU, START, WIDTH)
 
     rule #memory ( COP:CallOp     _ _ _ ARGSTART ARGWIDTH RETSTART RETWIDTH , MU ) => #memoryUsageUpdate(#memoryUsageUpdate(MU, ARGSTART, ARGWIDTH), RETSTART, RETWIDTH)
     rule #memory ( CSOP:CallSixOp _ _   ARGSTART ARGWIDTH RETSTART RETWIDTH , MU ) => #memoryUsageUpdate(#memoryUsageUpdate(MU, ARGSTART, ARGWIDTH), RETSTART, RETWIDTH)
@@ -1590,6 +1553,8 @@ module ETHEREUM
 // -   `#gasExec` loads all the relevant surronding state and uses that to compute
 //     the intrinsic execution gas of each opcode.
 
+// TUTORIAL: Fill in the semantics of `#gasExec` for `EXP`, `JUMPDEST`, and `LOG`.
+
 
     syntax InternalOp ::= #gasExec ( Schedule , OpCode )
  // ----------------------------------------------------
@@ -1601,14 +1566,9 @@ module ETHEREUM
            ...
          </account>
 
-    rule <op> #gasExec(SCHED, EXP W0 0)  => Gexp < SCHED > ... </op>
-    rule <op> #gasExec(SCHED, EXP W0 W1) => Gexp < SCHED > +Int (Gexpbyte < SCHED > *Int (1 +Int (log256Int(W1)))) ... </op> requires W1 =/=K 0
-
     rule <op> #gasExec(SCHED, CALLDATACOPY  _ _ WIDTH) => Gverylow     < SCHED > +Int (Gcopy < SCHED > *Int (WIDTH up/Int 32)) ... </op>
     rule <op> #gasExec(SCHED, CODECOPY      _ _ WIDTH) => Gverylow     < SCHED > +Int (Gcopy < SCHED > *Int (WIDTH up/Int 32)) ... </op>
     rule <op> #gasExec(SCHED, EXTCODECOPY _ _ _ WIDTH) => Gextcodecopy < SCHED > +Int (Gcopy < SCHED > *Int (WIDTH up/Int 32)) ... </op>
-
-    rule <op> #gasExec(SCHED, LOG(N) _ WIDTH) => (Glog < SCHED > +Int (Glogdata < SCHED > *Int WIDTH) +Int (N *Int Glogtopic < SCHED >)) ... </op>
 
     rule <op> #gasExec(SCHED, COP:CallOp     GCAP ACCTTO VALUE _ _ _ _) => Ccall(SCHED, ACCTTO, ACCTS, GCAP, GAVAIL, VALUE) ... </op> <activeAccounts> ACCTS </activeAccounts> <gas> GAVAIL </gas>
     rule <op> #gasExec(SCHED, CSOP:CallSixOp GCAP ACCTTO       _ _ _ _) => Ccall(SCHED, ACCTTO, ACCTS, GCAP, GAVAIL, 0)     ... </op> <activeAccounts> ACCTS </activeAccounts> <gas> GAVAIL </gas>
@@ -1618,7 +1578,6 @@ module ETHEREUM
 
     rule <op> #gasExec(SCHED, SHA3 _ WIDTH) => Gsha3 < SCHED > +Int (Gsha3word < SCHED > *Int (WIDTH up/Int 32)) ... </op>
 
-    rule <op> #gasExec(SCHED, JUMPDEST) => Gjumpdest < SCHED > ... </op>
     rule <op> #gasExec(SCHED, SLOAD _)  => Gsload    < SCHED > ... </op>
 
     // Wzero
