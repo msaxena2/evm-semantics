@@ -929,16 +929,29 @@ These operators make queries about the current execution state.
     rule <op> CALLER    => CL   ~> #push ... </op> <caller> CL </caller>
     rule <op> CALLVALUE => CV   ~> #push ... </op> <callValue> CV </callValue>
 
-    syntax NullStackOp ::= "MSIZE" | "CODESIZE"
- // -------------------------------------------
-    rule <op> MSIZE    => 32 *Word MU         ~> #push ... </op> <memoryUsed> MU </memoryUsed>
-    rule <op> CODESIZE => #sizeOpCodeMap(PGM) ~> #push ... </op> <program> PGM </program>
+    syntax NullStackOp ::= "MSIZE"
+ // ------------------------------
+    rule <op> MSIZE => 32 *Word MU ~> #push ... </op> <memoryUsed> MU </memoryUsed>
+
+    syntax NullStackOp ::= "CODESIZE"
+ // ---------------------------------
+    rule <mode> EXECMODE </mode>
+         <op> CODESIZE => #sizeOpCodeMap(PGM) ~> #push ... </op> <program> PGM </program>
+      requires EXECMODE =/=K EVMPRIME
+
+    rule <mode> EVMPRIME </mode>
+         <op> CODESIZE => #exception ... </op>
 
     syntax TernStackOp ::= "CODECOPY"
  // ---------------------------------
-    rule <op> CODECOPY MEMSTART PGMSTART WIDTH => . ... </op>
+    rule <mode> EXECMODE </mode>
+         <op> CODECOPY MEMSTART PGMSTART WIDTH => . ... </op>
          <program> PGM </program>
          <localMem> LM => LM [ MEMSTART := #asmOpCodes(#asOpCodes(PGM)) [ PGMSTART .. WIDTH ] ] </localMem>
+      requires EXECMODE =/=K EVMPRIME
+
+    rule <mode> EVMPRIME </mode>
+         <op> CODECOPY _ _ _ => #exception ... </op>
 
     syntax UnStackOp ::= "BLOCKHASH"
  // --------------------------------
@@ -1044,16 +1057,22 @@ For now, I assume that they instantiate an empty account and use the empty data.
 
     syntax UnStackOp ::= "EXTCODESIZE"
  // ----------------------------------
-    rule <op> EXTCODESIZE ACCT => #sizeOpCodeMap(CODE) ~> #push ... </op>
+    rule <mode> EXECMODE </mode>
+         <op> EXTCODESIZE ACCT => #sizeOpCodeMap(CODE) ~> #push ... </op>
          <account>
            <acctID> ACCT </acctID>
            <code> CODE </code>
            ...
          </account>
+      requires EXECMODE =/=K EVMPRIME
 
-    rule <op> EXTCODESIZE ACCT => #newAccount ACCT ~> 0 ~> #push ... </op>
+    rule <mode> EXECMODE </mode>
+         <op> EXTCODESIZE ACCT => #newAccount ACCT ~> 0 ~> #push ... </op>
          <activeAccounts> ACCTS </activeAccounts>
-      requires notBool ACCT in ACCTS
+      requires EXECMODE =/=K EVMPRIME andBool notBool ACCT in ACCTS
+
+    rule <mode> EVMPRIME </mode>
+         <op> EXTCODESIZE _ => #exception ... </op>
 ```
 
 TODO: What should happen in the case that the account doesn't exist with `EXTCODECOPY`?
@@ -1062,17 +1081,23 @@ Should we pad zeros (for the copied "program")?
 ```{.k .uiuck .rvk}
     syntax QuadStackOp ::= "EXTCODECOPY"
  // ------------------------------------
-    rule <op> EXTCODECOPY ACCT MEMSTART PGMSTART WIDTH => . ... </op>
+    rule <mode> EXECMODE </mode>
+         <op> EXTCODECOPY ACCT MEMSTART PGMSTART WIDTH => . ... </op>
          <localMem> LM => LM [ MEMSTART := #asmOpCodes(#asOpCodes(PGM)) [ PGMSTART .. WIDTH ] ] </localMem>
          <account>
            <acctID> ACCT </acctID>
            <code> PGM </code>
            ...
          </account>
+      requires EXECMODE =/=K EVMPRIME
 
-    rule <op> EXTCODECOPY ACCT MEMSTART PGMSTART WIDTH => #newAccount ACCT ... </op>
+    rule <mode> EXECMODE </mode>
+         <op> EXTCODECOPY ACCT MEMSTART PGMSTART WIDTH => #newAccount ACCT ... </op>
          <activeAccounts> ACCTS </activeAccounts>
-      requires notBool ACCT in ACCTS
+      requires EXECMODE =/=K EVMPRIME andBool notBool ACCT in ACCTS
+
+    rule <mode> EVMPRIME </mode>
+         <op> EXTCODECOPY _ _ _ _ => #exception ... </op>
 ```
 
 ### Account Storage Operations
