@@ -163,7 +163,7 @@ Our semantics is modal, with the initial mode being set on the command line via 
 -   `GASANALYZE` performs gas analysis of the program instead of executing normally.
 
 ```{.k .uiuck .rvk}
-    syntax Mode ::= "NORMAL" | "VMTESTS" | "GASANALYZE"
+    syntax Mode ::= "NORMAL" | "VMTESTS" | "GASANALYZE" | "EVMPRIME"
 ```
 
 -   `#setMode_` sets the mode to the supplied one.
@@ -787,19 +787,57 @@ Some operators don't calculate anything, they just push the stack around a bit.
 
 These operations are getters/setters of the local execution memory.
 
+In mode `EVMPRIME`, the opcodes `MLOAD` and `MSTORE` are always assumed to be word-aligned.
+If the write/read is not word-aligned, an exception is thrown instead.
+This makes reasoning about `MLOAD` and `MSTORE` much simpler to reason about (we do not have to chop up a word into 32 bytes/reassemble it).
+
 ```{.k .uiuck .rvk}
     syntax UnStackOp ::= "MLOAD"
  // ----------------------------
-    rule <op> MLOAD INDEX => #asWord(#range(LM, INDEX, 32)) ~> #push ... </op>
+    rule <mode> EXECMODE </mode>
+         <op> MLOAD INDEX => #asWord(#range(LM, INDEX, 32)) ~> #push ... </op>
          <localMem> LM </localMem>
+      requires EXECMODE =/=K EVMPRIME
 
-    syntax BinStackOp ::= "MSTORE" | "MSTORE8"
- // ------------------------------------------
-    rule <op> MSTORE INDEX VALUE => . ... </op>
+    rule <mode> EVMPRIME </mode>
+         <op> MLOAD INDEX => VALUE ~> #push ... </op>
+         <localMem> ... INDEX |-> VALUE ... </localMem>
+      requires INDEX %Int 32 ==K 0
+
+    rule <mode> EVMPRIME </mode>
+         <op> MLOAD INDEX => 0 ~> #push ... </op>
+         <localMem> LM </localMem>
+      requires INDEX %Int 32 ==K 0 andBool notBool (INDEX in_keys(LM))
+
+    rule <mode> EVMPRIME </mode>
+         <op> MLOAD INDEX => #exception ... </op>
+      requires INDEX %Int 32 =/=K 0
+
+    syntax BinStackOp ::= "MSTORE"
+ // ------------------------------
+    rule <mode> EXECMODE </mode>
+         <op> MSTORE INDEX VALUE => . ... </op>
          <localMem> LM => LM [ INDEX := #padToWidth(32, #asByteStack(VALUE)) ] </localMem>
+      requires EXECMODE =/=K EVMPRIME
 
-    rule <op> MSTORE8 INDEX VALUE => . ... </op>
-         <localMem> LM => LM [ INDEX <- (VALUE %Int 256) ]    </localMem>
+    rule <mode> EVMPRIME </mode>
+         <op> MSTORE INDEX VALUE => . ... </op>
+         <localMem> LM => LM [ INDEX <- VALUE ] </localMem>
+      requires INDEX %Int 32 ==K 0
+
+    rule <mode> EVMPRIME </mode>
+         <op> MSTORE INDEX VALUE => #exception ... </op>
+      requires INDEX %Int 32 =/=K 0
+
+    syntax BinStackOp ::= "MSTORE8"
+ // -------------------------------
+    rule <mode> EXECMODE </mode>
+         <op> MSTORE8 INDEX VALUE => . ... </op>
+         <localMem> LM => LM [ INDEX <- (VALUE %Int 256) ] </localMem>
+      requires EXECMODE =/=K EVMPRIME
+
+    rule <mode> EVMPRIME </mode>
+         <op> MSTORE8 _ _ => #exception ... </op>
 ```
 
 ### Expressions
