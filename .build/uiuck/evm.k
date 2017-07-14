@@ -725,6 +725,22 @@ module ETHEREUM
     rule #calcJumpTable( PUSH(W, _)      ; OPS , PCOUNT , JT ) => #calcJumpTable(OPS, PCOUNT +Int W +Int 1, JT)
     rule #calcJumpTable( _               ; OPS , PCOUNT , JT ) => #calcJumpTable(OPS, PCOUNT +Int 1, JT) [owise]
 
+    syntax OpCodes ::= OpCodes "++OpCodes" OpCodes [function]
+ // ---------------------------------------------------------
+    rule .OpCodes    ++OpCodes OPS  => OPS
+    rule (OP ; OPS1) ++OpCodes OPS2 => OP ; (OPS1 ++OpCodes OPS2)
+
+
+// -   `if (_) {_} else {_}` allows for a nicer looking branching structure than
+//     writing bare EVM.
+
+
+    syntax OpCodes ::= "if" "(" OpCodes ")" "{" OpCodes "}" "else" "{" OpCodes "}" [function]
+                     | #ifThenElse ( String , OpCodes , OpCodes , OpCodes )        [function]
+ // -----------------------------------------------------------------------------------------
+    rule if ( COND ) { THEN } else { ELSE }   => #ifThenElse("ifThenElse_" +String Int2String(!N:Int), COND, THEN, ELSE)
+    rule #ifThenElse(LABEL, COND, THEN, ELSE) => COND ++OpCodes (jumpi(LABEL +String "_true") ; (ELSE ++OpCodes (jump(LABEL +String "_end") ; jumpdest(LABEL +String "_true") ; (THEN ++OpCodes (jumpdest(LABEL +String "_end") ; .OpCodes)))))
+
 
 // EVM OpCodes
 // -----------
