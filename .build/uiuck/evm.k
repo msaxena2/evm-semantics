@@ -677,7 +677,7 @@ module ETHEREUM
     syntax Map ::= #asMapOpCodes ( OpCodes )       [function]
                  | #asMapOpCodes ( Int , OpCodes ) [function, klabel(#asMapOpCodesAux)]
  // -----------------------------------------------------------------------------------
-    rule #asMapOpCodes( OPS:OpCodes )         => #asMapOpCodes(0, OPS)
+    rule #asMapOpCodes( OPS:OpCodes )         => #asMapOpCodes(0, #resolveJumps(OPS))
     rule #asMapOpCodes( N , .OpCodes )        => .Map
     rule #asMapOpCodes( N , OP:OpCode ; OCS ) => (N |-> OP) #asMapOpCodes(N +Int 1, OCS) requires notBool isPushOp(OP)
     rule #asMapOpCodes( N , PUSH(M, W) ; OCS) => (N |-> PUSH(M, W)) #asMapOpCodes(N +Int 1 +Int M, OCS)
@@ -693,6 +693,37 @@ module ETHEREUM
     syntax Int ::= #sizeOpCodeMap ( Map ) [function]
  // ------------------------------------------------
     rule #sizeOpCodeMap(M) => #sizeWordStack(#asmOpCodes(#asOpCodes(M)))
+
+
+// In `EVMPRIME` mode, we have opcodes `jump(_)`, `jumpi(_)`, and `jumpdest(_)`
+// which use named tags for labelling the destinations instead of program counters.
+// This allows us to easily make higher-level opcodes that use these more
+// structured control-flow operators (while also having a direct mapping to EVM).
+
+
+    syntax OpCode  ::= PrimeOp
+    syntax PrimeOp ::= jumpdest ( String ) | jump ( String ) | jumpi ( String )
+ // ---------------------------------------------------------------------------
+
+    syntax OpCodes ::= #resolveJumps ( OpCodes )       [function]
+                     | #resolveJumps ( OpCodes , Map ) [function, klabel(#resolveJumpsAux)]
+ // ---------------------------------------------------------------------------------------
+    rule #resolveJumps( OPS ) => #resolveJumps( OPS , #calcJumpTable( OPS , 0 , .Map ) )
+
+    rule #resolveJumps( .OpCodes              , JT ) => .OpCodes
+    rule #resolveJumps( OP              ; OPS , JT ) => OP       ; #resolveJumps(OPS, JT) [owise]
+    rule #resolveJumps( jumpdest(LABEL) ; OPS , JT ) => JUMPDEST ; #resolveJumps(OPS, JT)
+    rule #resolveJumps( jump(LABEL)     ; OPS , LABEL |-> PCOUNT JT ) => PUSH(32, PCOUNT) ; JUMP  ; #resolveJumps(OPS, LABEL |-> PCOUNT JT)
+    rule #resolveJumps( jumpi(LABEL)    ; OPS , LABEL |-> PCOUNT JT ) => PUSH(32, PCOUNT) ; JUMPI ; #resolveJumps(OPS, LABEL |-> PCOUNT JT)
+
+    syntax Map ::= #calcJumpTable ( OpCodes , Int , Map ) [function]
+ // ----------------------------------------------------------------
+    rule #calcJumpTable( .OpCodes              , _      , JT ) => JT
+    rule #calcJumpTable( jumpdest(LABEL) ; OPS , PCOUNT , JT ) => #calcJumpTable(OPS, PCOUNT +Int 1, JT [ LABEL <- PCOUNT ])
+    rule #calcJumpTable( jump(LABEL)     ; OPS , PCOUNT , JT ) => #calcJumpTable(OPS, PCOUNT +Int 34, JT)
+    rule #calcJumpTable( jumpi(LABEL)    ; OPS , PCOUNT , JT ) => #calcJumpTable(OPS, PCOUNT +Int 34, JT)
+    rule #calcJumpTable( PUSH(W, _)      ; OPS , PCOUNT , JT ) => #calcJumpTable(OPS, PCOUNT +Int W +Int 1, JT)
+    rule #calcJumpTable( _               ; OPS , PCOUNT , JT ) => #calcJumpTable(OPS, PCOUNT +Int 1, JT) [owise]
 
 
 // EVM OpCodes
