@@ -269,9 +269,49 @@ Bitwise logical operators are lifted from the integer versions.
 -   `keccak` serves as a wrapper around the `Keccak256` in `KRYPTO`.
 
 ```{.k .uiuck .rvk}
-    syntax Word ::= keccak ( WordStack ) [function]
- // -----------------------------------------------
+    syntax Word ::= keccak ( List ) [function]
+ // ------------------------------------------
     rule keccak(WS) => #parseHexWord(Keccak256(#unparseByteStack(WS)))
+```
+
+-   `#take(N , WS)` keeps the first $N$ elements of a `WordStack` (passing with zeros as needed).
+-   `#drop(N , WS)` removes the first $N$ elements of a `WordStack`.
+
+```{.k .uiuck .rvk}
+    syntax List ::= #take ( Word , List ) [function]
+ // ------------------------------------------------
+    rule #take(N, WS) => range(#padToWidthAfter(N, WS), 0, size(#padToWidthAfter(N, WS)) -Int N)
+
+    syntax List ::= #drop ( Word , List ) [function]
+ // ------------------------------------------------
+    rule #drop(N, WS) => #if N >=Int size(WS) #then .List #else range(WS, N, 0) #fi
+```
+
+-   `WS [ N := W ]` sets element $N$ of $WS$ to $W$ (padding with zeros as needed).
+
+```{.k .rvk .uiuck}
+    syntax List ::= List "[" Word ":=" Word "]" [function]
+ // ------------------------------------------------------
+    rule WS:List [ N := W ] => range(WS, 0, size(WS) -Int N) ListItem(W) range(WS, N +Int 1, 0)
+
+    syntax List ::= List "[" Word ".." Word "]" [function]
+ // ------------------------------------------------------
+    rule WS [ START .. WIDTH ] => #if START >=Int size(WS) #then #padToWidthAfter(WIDTH, .List) #else range(#padToWidthAfter(START +Int WIDTH, WS), START, size(#padToWidthAfter(START +Int WIDTH, WS)) -Int START -Int WIDTH) #fi
+```
+
+-   `#padToWidth(N, WS)` pads `WS` on the left with zeros until it is width `N`.
+-   `#padToWidthAfter(N, WS)` does the same but pads zeros on the right.
+
+```{.k .uiuck .rvk}
+    syntax List ::= #padToWidth ( Int , List ) [function]
+ // -----------------------------------------------------
+    rule #padToWidth(N, WS) => WS                             requires notBool size(WS) <Int N
+    rule #padToWidth(N, WS) => #padToWidth(N, ListItem(0) WS) requires size(WS) <Int N
+
+    syntax List ::= #padToWidthAfter ( Int , List ) [function]
+ // ----------------------------------------------------------
+    rule #padToWidthAfter(N, WS) => WS                                  requires notBool size(WS) <Int N
+    rule #padToWidthAfter(N, WS) => #padToWidthAfter(N, WS ListItem(0)) requires size(WS) <Int N
 ```
 
 Data Structures
@@ -279,107 +319,27 @@ Data Structures
 
 Several data-structures and operations over `Word` are useful to have around.
 
-Word Stack
-----------
-
-EVM is a stack machine, and so needs a stack of words to operate on.
-The stack and some standard operations over it are provided here.
-This stack also serves as a cons-list, so we provide some standard cons-list manipulation tools.
-
-```{.k .uiuck .rvk}
-    syntax WordStack ::= ".WordStack" | Word ":" WordStack
- // ------------------------------------------------------
-```
-
--   `_++_` acts as `WordStack` append.
--   `#take( N , WS)` keeps the first $N$ elements of a `WordStack` (passing with zeros as needed).
--   `#drop( N , WS)` removes the first $N$ elements of a `WordStack`.
-
-```{.k .uiuck .rvk}
-    syntax WordStack ::= WordStack "++" WordStack [function]
- // --------------------------------------------------------
-    rule .WordStack ++ WS' => WS'
-    rule (W : WS)   ++ WS' => W : (WS ++ WS')
-
-    syntax WordStack ::= #take ( Int , WordStack ) [function]
- // ---------------------------------------------------------
-    rule #take(0, WS)         => .WordStack
-    rule #take(N, .WordStack) => 0 : #take(N -Int 1, .WordStack) requires N >Int 0
-    rule #take(N, (W : WS))   => W : #take(N -Int 1, WS)         requires N >Int 0
-
-    syntax WordStack ::= #drop ( Int , WordStack ) [function]
- // ---------------------------------------------------------
-    rule #drop(0, WS)         => WS
-    rule #drop(N, .WordStack) => .WordStack
-    rule #drop(N, (W : WS))   => #drop(N -Int 1, WS) requires N >Int 0
-```
-
--   `WS [ N ]` accesses element $N$ of $WS$.
--   `WS [ N := W ]` sets element $N$ of $WS$ to $W$ (padding with zeros as needed).
-
-```{.k .uiuck .rvk}
-    syntax Word ::= WordStack "[" Int "]" [function]
- // ------------------------------------------------
-    rule (W0 : WS)   [0] => W0
-    rule (.WordStack)[N] => 0            requires N >Int 0
-    rule (W0 : WS)   [N] => WS[N -Int 1] requires N >Int 0
-
-    syntax WordStack ::= WordStack "[" Int ":=" Word "]" [function]
- // ---------------------------------------------------------------
-    rule (W0 : WS)  [ 0 := W ] => W  : WS
-    rule .WordStack [ N := W ] => 0  : (.WordStack [ N -Int 1 := W ]) requires N >Int 0
-    rule (W0 : WS)  [ N := W ] => W0 : (WS [ N -Int 1 := W ])         requires N >Int 0
-
-    syntax WordStack ::= WordStack "[" Int ".." Int "]" [function]
- // --------------------------------------------------------------
-    rule WS [ START .. WIDTH ] => #take(WIDTH, #drop(START, WS))
-```
-
--   `#sizeWordStack` calculates the size of a `WordStack`.
--   `_in_` determines if a `Word` occurs in a `WordStack`.
-
-```{.k .uiuck .rvk}
-    syntax Int ::= #sizeWordStack ( WordStack ) [function]
- // ------------------------------------------------------
-    rule #sizeWordStack ( .WordStack ) => 0
-    rule #sizeWordStack ( W : WS )     => 1 +Int #sizeWordStack(WS)
-
-    syntax Bool ::= Word "in" WordStack [function]
- // ----------------------------------------------
-    rule W in .WordStack => false
-    rule W in (W' : WS)  => (W ==K W') orElseBool (W in WS)
-```
-
--   `#padToWidth(N, WS)` makes sure that a `WordStack` is the correct size.
-
-```{.k .uiuck .rvk}
-    syntax WordStack ::= #padToWidth ( Int , WordStack ) [function]
- // ---------------------------------------------------------------
-    rule #padToWidth(N, WS) => WS                     requires notBool #sizeWordStack(WS) <Int N
-    rule #padToWidth(N, WS) => #padToWidth(N, 0 : WS) requires #sizeWordStack(WS) <Int N
-```
-
 Byte Arrays
 -----------
 
 The local memory of execution is a byte-array (instead of a word-array).
 
 -   `#asWord` will interperet a stack of bytes as a single word (with MSB first).
--   `#asByteStack` will split a single word up into a `WordStack` where each word is a byte wide.
+-   `#asByteStack` will split a single word up into a `List` where each word is a byte wide.
 
 ```{.k .uiuck .rvk}
-    syntax Word ::= #asWord ( WordStack ) [function]
- // ------------------------------------------------
-    rule #asWord( .WordStack )    => 0
-    rule #asWord( W : .WordStack) => W
-    rule #asWord( W0 : W1 : WS )  => #asWord(((W0 *Word 256) +Word W1) : WS)
+    syntax Word ::= #asWord ( List ) [function]
+ // -------------------------------------------
+    rule #asWord( .List )                        => 0
+    rule #asWord( ListItem(W) )                  => W
+    rule #asWord( ListItem(W0) ListItem(W1) WS ) => #asWord(ListItem((W0 *Word 256) +Word W1) WS)
 
-    syntax WordStack ::= #asByteStack ( Word )             [function]
-                       | #asByteStack ( Word , WordStack ) [function, klabel(#asByteStackAux)]
- // ------------------------------------------------------------------------------------------
-    rule #asByteStack( W ) => #asByteStack( W , .WordStack )
+    syntax List ::= #asByteStack ( Word )        [function]
+                  | #asByteStack ( Word , List ) [function, klabel(#asByteStackAux)]
+ // --------------------------------------------------------------------------------
+    rule #asByteStack( W ) => #asByteStack( W , .List )
     rule #asByteStack( 0 , WS ) => WS
-    rule #asByteStack( W , WS ) => #asByteStack( W /Int 256 , W %Int 256 : WS ) requires W =/=K 0
+    rule #asByteStack( W , WS ) => #asByteStack( W /Int 256 , ListItem(W %Int 256) WS ) requires W =/=K 0
 ```
 
 Addresses
@@ -419,27 +379,26 @@ Most of EVM data is held in finite maps.
 We are using the polymorphic `Map` sort for these word maps.
 
 -   `WM [ N := WS ]` assigns a contiguous chunk of $WM$ to $WS$ starting at position $W$.
--   `#asMapWordStack` converts a `WordStack` to a `Map`.
+-   `#asMapWordStack` converts a `List` to a `Map`.
 -   `#range(M, START, WIDTH)` reads off $WIDTH$ elements from $WM$ beginning at position $START$ (padding with zeros as needed).
 
 ```{.k .uiuck .rvk}
-    syntax Map ::= Map "[" Word ":=" WordStack "]" [function]
- // ---------------------------------------------------------
-    rule WM[ N := .WordStack ] => WM
-    rule WM[ N := W : WS     ] => (WM[N <- W])[N +Word 1 := WS]
+    syntax Map ::= Map "[" Word ":=" List "]" [function]
+ // ----------------------------------------------------
+    rule WM [ N := .List          ] => WM
+    rule WM [ N := ListItem(W) WS ] => (WM [ N <- W ]) [ N +Word 1 := WS ]
 
-    syntax Map ::= #asMapWordStack ( WordStack ) [function]
- // -------------------------------------------------------
-    rule #asMapWordStack(WS:WordStack) => .Map [ 0 := WS ]
+    syntax Map ::= #asMapWordStack ( List ) [function]
+ // --------------------------------------------------
+    rule #asMapWordStack(WS:List) => .Map [ 0 := WS ]
 
-    syntax WordStack ::= #range ( Map , Word , Word )            [function]
-    syntax WordStack ::= #range ( Map , Word , Word , WordStack) [function, klabel(#rangeAux)]
- // ------------------------------------------------------------------------------------------
-    rule #range(WM, START:Int, WIDTH:Int) => #range(WM, START +Int WIDTH -Int 1, WIDTH, .WordStack)
-
-    rule #range(WM,           END,     0,         WS) => WS
-    rule #range(WM,           END:Int, WIDTH:Int, WS) => #range(WM, END -Int 1, WIDTH -Int 1, 0 : WS) requires (WIDTH >Int 0) andBool notBool END in_keys(WM)
-    rule #range(END |-> W WM, END:Int, WIDTH:Int, WS) => #range(WM, END -Int 1, WIDTH -Int 1, W : WS) requires (WIDTH >Int 0)
+    syntax List ::= #range ( Map , Word , Word )       [function]
+    syntax List ::= #range ( Map , Word , Word , List) [function, klabel(#rangeAux)]
+ // --------------------------------------------------------------------------------
+    rule #range(WM, START:Int, WIDTH:Int) => #range(WM, START +Int WIDTH -Int 1, WIDTH, .List)
+    rule #range(WM,           END:Int, 0,         WS) => WS
+    rule #range(WM,           END:Int, WIDTH:Int, WS) => #range(WM, END -Int 1, WIDTH -Int 1, ListItem(0) WS) requires (WIDTH >Int 0) andBool notBool END in_keys(WM)
+    rule #range(END |-> W WM, END:Int, WIDTH:Int, WS) => #range(WM, END -Int 1, WIDTH -Int 1, ListItem(W) WS) requires (WIDTH >Int 0)
 ```
 
 Parsing/Unparsing
@@ -466,7 +425,7 @@ Writing a JSON parser in K takes 6 lines.
 Parsing
 -------
 
-These parsers can interperet hex-encoded strings as `Word`s, `WordStack`s, and `Map`s.
+These parsers can interperet hex-encoded strings as `Word`s, `List`s, and `Map`s.
 
 -   `#parseHexWord` interperets a string as a single hex-encoded `Word`.
 -   `#parseHexBytes` interperets a string as a stack of bytes.
@@ -487,17 +446,17 @@ These parsers can interperet hex-encoded strings as `Word`s, `WordStack`s, and `
     rule #parseWord(S)  => #parseHexWord(S) requires lengthString(S) >=Int 2 andBool substrString(S, 0, 2) ==String "0x"
     rule #parseWord(S)  => String2Int(S) [owise]
 
-    syntax WordStack ::= #parseHexBytes  ( String ) [function]
-                       | #parseByteStack ( String ) [function]
- // ----------------------------------------------------------
+    syntax List ::= #parseHexBytes  ( String ) [function]
+                  | #parseByteStack ( String ) [function]
+ // -----------------------------------------------------
     rule #parseByteStack(S) => #parseHexBytes(replaceAll(S, "0x", ""))
-    rule #parseHexBytes("") => .WordStack
-    rule #parseHexBytes(S)  => #parseHexWord(substrString(S, 0, 2)) : #parseHexBytes(substrString(S, 2, lengthString(S))) requires lengthString(S) >=Int 2
+    rule #parseHexBytes("") => .List
+    rule #parseHexBytes(S)  => ListItem(#parseHexWord(substrString(S, 0, 2))) #parseHexBytes(substrString(S, 2, lengthString(S))) requires lengthString(S) >=Int 2
 
-    syntax WordStack ::= #parseWordStack ( JSON ) [function]
- // --------------------------------------------------------
-    rule #parseWordStack( [ .JSONList ] )            => .WordStack
-    rule #parseWordStack( [ (WORD:String) , REST ] ) => #parseHexWord(WORD) : #parseWordStack( [ REST ] )
+    syntax List ::= #parseWordStack ( JSON ) [function]
+ // ---------------------------------------------------
+    rule #parseWordStack( [ .JSONList ] )            => .List
+    rule #parseWordStack( [ (WORD:String) , REST ] ) => ListItem(#parseHexWord(WORD)) #parseWordStack( [ REST ] )
 
     syntax Map ::= #parseMap ( JSON ) [function]
  // --------------------------------------------
@@ -513,16 +472,16 @@ These parsers can interperet hex-encoded strings as `Word`s, `WordStack`s, and `
 Unparsing
 ---------
 
-We need to interperet a `WordStack` as a `String` again so that we can call `Keccak256` on it from `KRYPTO`.
+We need to interperet a `List` as a `String` again so that we can call `Keccak256` on it from `KRYPTO`.
 
--   `#unparseByteStack` turns a stack of bytes (as a `WordStack`) into a `String`.
+-   `#unparseByteStack` turns a stack of bytes (as a `List`) into a `String`.
 -   `#padByte` ensures that the `String` interperetation of a `Word` is wide enough.
 
 ```{.k .uiuck .rvk}
-    syntax String ::= #unparseByteStack ( WordStack ) [function]
- // ------------------------------------------------------------
-    rule #unparseByteStack( .WordStack )   => ""
-    rule #unparseByteStack( (W:Int) : WS ) => chrChar(W %Int (2 ^Int 8)) +String #unparseByteStack(WS)
+    syntax String ::= #unparseByteStack ( List ) [function]
+ // -------------------------------------------------------
+    rule #unparseByteStack( .List ) => ""
+    rule #unparseByteStack( ListItem(W:Int) WS ) => chrChar(W %Int 256) +String #unparseByteStack(WS)
 
     syntax String ::= #padByte( String ) [function]
  // -----------------------------------------------

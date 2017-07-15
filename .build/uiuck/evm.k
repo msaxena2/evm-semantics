@@ -42,12 +42,12 @@ module ETHEREUM
                       // Mutable during a single transaction
                       // -----------------------------------
 
-                      <output>        .WordStack </output>              // H_RETURN
-                      <memoryUsed>    0:Word     </memoryUsed>          // \mu_i
-                      <callDepth>     0:Word     </callDepth>
-                      <callStack>     .List      </callStack>
-                      <interimStates> .List      </interimStates>
-                      <callLog>       .Set       </callLog>
+                      <output>        .List  </output>                  // H_RETURN
+                      <memoryUsed>    0:Word </memoryUsed>              // \mu_i
+                      <callDepth>     0:Word </callDepth>
+                      <callStack>     .List  </callStack>
+                      <interimStates> .List  </interimStates>
+                      <callLog>       .Set   </callLog>
 
                       <txExecState>
                         <program> .Map </program>                       // I_b
@@ -55,11 +55,11 @@ module ETHEREUM
                         // I_*
                         <id>        0:Word     </id>                    // I_a
                         <caller>    0:Word     </caller>                // I_s
-                        <callData>  .WordStack </callData>              // I_d
+                        <callData>  .List      </callData>              // I_d
                         <callValue> 0:Word     </callValue>             // I_v
 
                         // \mu_*
-                        <wordStack>   .WordStack </wordStack>           // \mu_s
+                        <wordStack>   .List </wordStack>                // \mu_s
                         <localMem>    .Map       </localMem>            // \mu_m
                         <pc>          0:Word     </pc>                  // \mu_pc
                         <gas>         0:Word     </gas>                 // \mu_g
@@ -179,8 +179,8 @@ module ETHEREUM
 // -   `#dropCallStack` removes the top element of the `callStack`.
 
 
-    syntax State ::= "{" Word "|" Word "|" Map "|" Word "|" WordStack "|" Word "|" WordStack "|" Map "|" Word "}"
- // -------------------------------------------------------------------------------------------------------------
+    syntax State ::= "{" Word "|" Word "|" Map "|" Word "|" List "|" Word "|" List "|" Map "|" Word "}"
+ // ---------------------------------------------------------------------------------------------------
 
     syntax InternalOp ::= "#pushCallStack"
  // --------------------------------------
@@ -518,14 +518,14 @@ module ETHEREUM
     syntax InternalOp ::= "#badJumpDest?" "[" OpCode "]"
  // ----------------------------------------------------
     rule <k> #badJumpDest? [ OP    ] => . ... </k> requires notBool isJumpOp(OP)
-    rule <k> #badJumpDest? [ OP    ] => . ... </k> <wordStack> DEST  : WS </wordStack> <program> ... DEST |-> JUMPDEST ... </program>
-    rule <k> #badJumpDest? [ JUMPI ] => . ... </k> <wordStack> _ : 0 : WS </wordStack>
+    rule <k> #badJumpDest? [ OP    ] => . ... </k> <wordStack> ListItem(DEST)          WS </wordStack> <program> ... DEST |-> JUMPDEST ... </program>
+    rule <k> #badJumpDest? [ JUMPI ] => . ... </k> <wordStack> ListItem(_) ListItem(0) WS </wordStack>
 
-    rule <k> #badJumpDest? [ JUMP  ] => #exception ... </k> <wordStack> DEST :     WS </wordStack> <program> ... DEST |-> OP ... </program> requires OP =/=K JUMPDEST
-    rule <k> #badJumpDest? [ JUMPI ] => #exception ... </k> <wordStack> DEST : W : WS </wordStack> <program> ... DEST |-> OP ... </program> requires OP =/=K JUMPDEST andBool W =/=K 0
+    rule <k> #badJumpDest? [ JUMP  ] => #exception ... </k> <wordStack> ListItem(DEST)             WS </wordStack> <program> ... DEST |-> OP ... </program> requires OP =/=K JUMPDEST
+    rule <k> #badJumpDest? [ JUMPI ] => #exception ... </k> <wordStack> ListItem(DEST) ListItem(W) WS </wordStack> <program> ... DEST |-> OP ... </program> requires OP =/=K JUMPDEST andBool W =/=K 0
 
-    rule <k> #badJumpDest? [ JUMP  ] => #exception ... </k> <wordStack> DEST :     WS </wordStack> <program> PGM </program> requires notBool (DEST in_keys(PGM))
-    rule <k> #badJumpDest? [ JUMPI ] => #exception ... </k> <wordStack> DEST : W : WS </wordStack> <program> PGM </program> requires (notBool (DEST in_keys(PGM))) andBool W =/=K 0
+    rule <k> #badJumpDest? [ JUMP  ] => #exception ... </k> <wordStack> ListItem(DEST)             WS </wordStack> <program> PGM </program> requires notBool (DEST in_keys(PGM))
+    rule <k> #badJumpDest? [ JUMPI ] => #exception ... </k> <wordStack> ListItem(DEST) ListItem(W) WS </wordStack> <program> PGM </program> requires (notBool (DEST in_keys(PGM))) andBool W =/=K 0
 
 
 // ### Execution Step
@@ -549,10 +549,10 @@ module ETHEREUM
                         | TernStackOp Word Word Word
                         | QuadStackOp Word Word Word Word
  // -----------------------------------------------------
-    rule <k> #exec [ UOP:UnStackOp   => UOP #addr?(UOP, W0)          ] ... </k> <wordStack> W0 : WS                => WS </wordStack>
-    rule <k> #exec [ BOP:BinStackOp  => BOP #addr?(BOP, W0) W1       ] ... </k> <wordStack> W0 : W1 : WS           => WS </wordStack>
-    rule <k> #exec [ TOP:TernStackOp => TOP #addr?(TOP, W0) W1 W2    ] ... </k> <wordStack> W0 : W1 : W2 : WS      => WS </wordStack>
-    rule <k> #exec [ QOP:QuadStackOp => QOP #addr?(QOP, W0) W1 W2 W3 ] ... </k> <wordStack> W0 : W1 : W2 : W3 : WS => WS </wordStack>
+    rule <k> #exec [ UOP:UnStackOp   => UOP #addr?(UOP, W0)          ] ... </k> <wordStack> (ListItem(W0)                                        => .List) ... </wordStack>
+    rule <k> #exec [ BOP:BinStackOp  => BOP #addr?(BOP, W0) W1       ] ... </k> <wordStack> (ListItem(W0) ListItem(W1)                           => .List) ... </wordStack>
+    rule <k> #exec [ TOP:TernStackOp => TOP #addr?(TOP, W0) W1 W2    ] ... </k> <wordStack> (ListItem(W0) ListItem(W1) ListItem(W2)              => .List) ... </wordStack>
+    rule <k> #exec [ QOP:QuadStackOp => QOP #addr?(QOP, W0) W1 W2 W3 ] ... </k> <wordStack> (ListItem(W0) ListItem(W1) ListItem(W2) ListItem(W3) => .List) ... </wordStack>
 
     syntax Word ::= "#addr?" "(" OpCode "," Word ")" [function]
  // -----------------------------------------------------------
@@ -566,8 +566,8 @@ module ETHEREUM
 // `StackOp` is used for opcodes which require a large portion of the stack.
 
 
-    syntax InternalOp ::= StackOp WordStack
- // ---------------------------------------
+    syntax InternalOp ::= StackOp List
+ // ----------------------------------
     rule <k> #exec [ SO:StackOp => SO WS ] ... </k> <wordStack> WS </wordStack>
 
 
@@ -577,8 +577,8 @@ module ETHEREUM
     syntax InternalOp ::= CallSixOp Word Word      Word Word Word Word
                         | CallOp    Word Word Word Word Word Word Word
  // ------------------------------------------------------------------
-    rule <k> #exec [ CSO:CallSixOp => CSO W0 #addr(W1)    W2 W3 W4 W5 ] ... </k> <wordStack> W0 : W1 : W2 : W3 : W4 : W5 : WS      => WS </wordStack>
-    rule <k> #exec [ CO:CallOp     => CO  W0 #addr(W1) W2 W3 W4 W5 W6 ] ... </k> <wordStack> W0 : W1 : W2 : W3 : W4 : W5 : W6 : WS => WS </wordStack>
+    rule <k> #exec [ CSO:CallSixOp => CSO W0 #addr(W1)    W2 W3 W4 W5 ] ... </k> <wordStack> (ListItem(W0) ListItem(W1) ListItem(W2) ListItem(W3) ListItem(W4) ListItem(W5)              => .List) ... </wordStack>
+    rule <k> #exec [ CO:CallOp     => CO  W0 #addr(W1) W2 W3 W4 W5 W6 ] ... </k> <wordStack> (ListItem(W0) ListItem(W1) ListItem(W2) ListItem(W3) ListItem(W4) ListItem(W5) ListItem(W6) => .List) ... </wordStack>
 
 
 // -   `#gas` calculates how much gas this operation costs, and takes into account
@@ -632,8 +632,8 @@ module ETHEREUM
 // `wordStack` and `localMem`).
 
 
-    syntax SubstateLogEntry ::= "{" Word "|" WordStack "|" WordStack "}"
- // --------------------------------------------------------------------
+    syntax SubstateLogEntry ::= "{" Word "|" List "|" List "}"
+ // ----------------------------------------------------------
 
 
 // After executing a transaction, it's necessary to have the effect of the substate
@@ -703,8 +703,8 @@ module ETHEREUM
     rule #asOpCodes(N, N |-> PUSH(S, W) M) => PUSH(S, W) ; #asOpCodes(N +Int 1 +Int S, M)
 
     syntax Int ::= #sizeOpCodeMap ( Map ) [function]
- // ------------------------------------------------
-    rule #sizeOpCodeMap(M) => #sizeWordStack(#asmOpCodes(#asOpCodes(M)))
+ // -------------------------------------------------
+    rule #sizeOpCodeMap(M) => size(#asmOpCodes(#asOpCodes(M)))
 
 
 // EVM OpCodes
@@ -723,10 +723,10 @@ module ETHEREUM
 // -   `#setStack_` will set the current stack to the given one.
 
 
-    syntax InternalOp ::= "#push" | "#setStack" WordStack
- // -----------------------------------------------------
-    rule <k> W0:Word ~> #push => . ... </k> <wordStack> WS => W0 : WS </wordStack>
-    rule <k> #setStack WS     => . ... </k> <wordStack> _  => WS      </wordStack>
+    syntax InternalOp ::= "#push" | "#setStack" List
+ // ------------------------------------------------
+    rule <k> W0:Word ~> #push => . ... </k> <wordStack> (.List => ListItem(W0)) ... </wordStack>
+    rule <k> #setStack WS     => . ... </k> <wordStack> _ => WS </wordStack>
 
 
 // -   `#newAccount_` allows declaring a new empty account with the given address
@@ -811,8 +811,8 @@ module ETHEREUM
 
     syntax StackOp ::= DUP ( Word ) | SWAP ( Word )
  // -----------------------------------------------
-    rule <k> DUP(N)  WS:WordStack => #setStack ((WS [ N -Int 1 ]) : WS)                      ... </k>
-    rule <k> SWAP(N) (W0 : WS)    => #setStack ((WS [ N -Int 1 ]) : (WS [ N -Int 1 := W0 ])) ... </k>
+    rule <k> DUP(N)  WS:List           => #setStack (ListItem(WS [ N -Int 1 ]) WS)                      ... </k>
+    rule <k> SWAP(N) (ListItem(W0) WS) => #setStack (ListItem(WS [ N -Int 1 ]) (WS [ N -Int 1 := W0 ])) ... </k>
 
     syntax PushOp ::= PUSH ( Word , Word )
  // --------------------------------------
@@ -988,7 +988,7 @@ module ETHEREUM
 
     syntax NullStackOp ::= "CALLDATASIZE"
  // -------------------------------------
-    rule <k> CALLDATASIZE => #sizeWordStack(CD) ~> #push ... </k>
+    rule <k> CALLDATASIZE => size(CD) ~> #push ... </k>
          <callData> CD </callData>
 
     syntax UnStackOp ::= "CALLDATALOAD"
@@ -1014,7 +1014,7 @@ module ETHEREUM
          <wordStack> WS => #drop(N, WS) </wordStack>
          <localMem> LM </localMem>
          <log> ... (.Set => SetItem({ ACCT | #take(N, WS) | #range(LM, MEMSTART, MEMWIDTH) })) </log>
-      requires #sizeWordStack(WS) >=Int N
+      requires size(WS) >=Int N
 
 
 // Ethereum Network OpCodes
@@ -1140,8 +1140,8 @@ module ETHEREUM
 //     can compare them against the test-set.
 
 
-    syntax Call ::= "{" Word "|" Word "|" Word "|" WordStack "}"
- // ------------------------------------------------------------
+    syntax Call ::= "{" Word "|" Word "|" Word "|" List "}"
+ // -------------------------------------------------------
 
 
 // -   `#call_____` takes the calling account, the account to execute as, the code
@@ -1150,9 +1150,9 @@ module ETHEREUM
 //     place the returned data in memory.
 
 
-    syntax InternalOp ::= "#call" Word Word Map Word Word WordStack
-                        | "#mkCall" Word Word Map Word Word WordStack
- // -----------------------------------------------------------------
+    syntax InternalOp ::= "#call" Word Word Map Word Word List
+                        | "#mkCall" Word Word Map Word Word List
+ // ------------------------------------------------------------
     rule <mode> EXECMODE </mode>
          <schedule> SCHED </schedule>
          <k> #call ACCTFROM ACCTTO CODE GCAP VALUE ARGS
@@ -1202,12 +1202,12 @@ module ETHEREUM
          <gas> GAVAIL </gas>
 
     syntax InternalOp ::= "#refund" Word
-                        | "#setLocalMem" Word Word WordStack
- // --------------------------------------------------------
+                        | "#setLocalMem" Word Word List
+ // ---------------------------------------------------
     rule <k> #refund G => . ... </k> <gas> GAVAIL => GAVAIL +Int G </gas>
 
     rule <k> #setLocalMem START WIDTH WS => . ... </k>
-         <localMem> LM => LM [ START := #take(minInt(WIDTH, #sizeWordStack(WS)), WS) ] </localMem>
+         <localMem> LM => LM [ START := #take(minInt(WIDTH, size(WS)), WS) ] </localMem>
 
 
 // -   `#precompiled` is a placeholder for the 4 pre-compiled contracts at
@@ -1312,7 +1312,7 @@ module ETHEREUM
          <gas> _ => #allBut64th(GAVAIL) </gas>
          <program> _ => INITCODE </program>
          <pc> _ => 0 </pc>
-         <output> _ => .WordStack </output>
+         <output> _ => .List </output>
          <id> ACCT </id>
          <account>
            <acctID> ACCT </acctID>
@@ -1326,7 +1326,7 @@ module ETHEREUM
 
     rule <mode> EXECMODE </mode>
          <k> #end ~> #codeDeposit ACCT => #popCallStack ~> #if EXECMODE ==K VMTESTS #then #popWorldState #else #dropWorldState #fi ~> ACCT ~> #push ... </k>
-         <output> OUT => .WordStack </output>
+         <output> OUT => .List </output>
          <account>
            <acctID> ACCT </acctID>
            <code> _ => #asMapOpCodes(#dasmOpCodes(OUT)) </code>
@@ -1817,26 +1817,26 @@ module ETHEREUM
 // Disassembler
 // ------------
 
-// After interpreting the strings representing programs as a `WordStack`, it should
-// be changed into an `OpCodes` for use by the EVM semantics.
+// After interpreting the strings representing programs as a `List`, it should be
+// changed into an `OpCodes` for use by the EVM semantics.
 
-// -   `#dasmOpCodes` interperets `WordStack` as an `OpCodes`.
+// -   `#dasmOpCodes` interperets `List` as an `OpCodes`.
 // -   `#dasmPUSH` handles the case of a `PushOp`.
 // -   `#dasmOpCode` interperets a `Word` as an `OpCode`.
 
 
-    syntax OpCodes ::= #dasmOpCodes ( WordStack ) [function]
- // --------------------------------------------------------
-    rule #dasmOpCodes( .WordStack ) => .OpCodes
-    rule #dasmOpCodes( W : WS )     => #dasmOpCode(W)   ; #dasmOpCodes(WS) requires W >=Int 0   andBool W <=Int 95
-    rule #dasmOpCodes( W : WS )     => #dasmOpCode(W)   ; #dasmOpCodes(WS) requires W >=Int 165 andBool W <=Int 255
-    rule #dasmOpCodes( W : WS )     => DUP(W -Int 127)  ; #dasmOpCodes(WS) requires W >=Int 128 andBool W <=Int 143
-    rule #dasmOpCodes( W : WS )     => SWAP(W -Int 143) ; #dasmOpCodes(WS) requires W >=Int 144 andBool W <=Int 159
-    rule #dasmOpCodes( W : WS )     => LOG(W -Int 160)  ; #dasmOpCodes(WS) requires W >=Int 160 andBool W <=Int 164
-    rule #dasmOpCodes( W : WS )     => #dasmPUSH( W -Int 95 , WS )         requires W >=Int 96  andBool W <=Int 127
+    syntax OpCodes ::= #dasmOpCodes ( List ) [function]
+ // ---------------------------------------------------
+    rule #dasmOpCodes( .List )          => .OpCodes
+    rule #dasmOpCodes( ListItem(W) WS ) => #dasmOpCode(W)   ; #dasmOpCodes(WS) requires W >=Int 0   andBool W <=Int 95
+    rule #dasmOpCodes( ListItem(W) WS ) => #dasmOpCode(W)   ; #dasmOpCodes(WS) requires W >=Int 165 andBool W <=Int 255
+    rule #dasmOpCodes( ListItem(W) WS ) => DUP(W -Int 127)  ; #dasmOpCodes(WS) requires W >=Int 128 andBool W <=Int 143
+    rule #dasmOpCodes( ListItem(W) WS ) => SWAP(W -Int 143) ; #dasmOpCodes(WS) requires W >=Int 144 andBool W <=Int 159
+    rule #dasmOpCodes( ListItem(W) WS ) => LOG(W -Int 160)  ; #dasmOpCodes(WS) requires W >=Int 160 andBool W <=Int 164
+    rule #dasmOpCodes( ListItem(W) WS ) => #dasmPUSH( W -Int 95 , WS )         requires W >=Int 96  andBool W <=Int 127
 
-    syntax OpCodes ::= #dasmPUSH ( Word , WordStack ) [function]
- // ------------------------------------------------------------
+    syntax OpCodes ::= #dasmPUSH ( Word , List ) [function]
+ // -------------------------------------------------------
     rule #dasmPUSH( W , WS ) => PUSH(W, #asWord(#take(W, WS))) ; #dasmOpCodes(#drop(W, WS))
 
     syntax OpCode ::= #dasmOpCode ( Word ) [function]
@@ -1908,77 +1908,77 @@ module ETHEREUM
 // Assembler
 // ---------
 
-// -   `#asmOpCodes` gives the `WordStack` representation of an `OpCodes`.
+// -   `#asmOpCodes` gives the `List` representation of an `OpCodes`.
 
 
-    syntax WordStack ::= #asmOpCodes ( OpCodes ) [function]
- // -------------------------------------------------------
-    rule #asmOpCodes( .OpCodes )           => .WordStack
-    rule #asmOpCodes( STOP         ; OPS ) =>   0 : #asmOpCodes(OPS)
-    rule #asmOpCodes( ADD          ; OPS ) =>   1 : #asmOpCodes(OPS)
-    rule #asmOpCodes( MUL          ; OPS ) =>   2 : #asmOpCodes(OPS)
-    rule #asmOpCodes( SUB          ; OPS ) =>   3 : #asmOpCodes(OPS)
-    rule #asmOpCodes( DIV          ; OPS ) =>   4 : #asmOpCodes(OPS)
-    rule #asmOpCodes( SDIV         ; OPS ) =>   5 : #asmOpCodes(OPS)
-    rule #asmOpCodes( MOD          ; OPS ) =>   6 : #asmOpCodes(OPS)
-    rule #asmOpCodes( SMOD         ; OPS ) =>   7 : #asmOpCodes(OPS)
-    rule #asmOpCodes( ADDMOD       ; OPS ) =>   8 : #asmOpCodes(OPS)
-    rule #asmOpCodes( MULMOD       ; OPS ) =>   9 : #asmOpCodes(OPS)
-    rule #asmOpCodes( EXP          ; OPS ) =>  10 : #asmOpCodes(OPS)
-    rule #asmOpCodes( SIGNEXTEND   ; OPS ) =>  11 : #asmOpCodes(OPS)
-    rule #asmOpCodes( LT           ; OPS ) =>  16 : #asmOpCodes(OPS)
-    rule #asmOpCodes( GT           ; OPS ) =>  17 : #asmOpCodes(OPS)
-    rule #asmOpCodes( SLT          ; OPS ) =>  18 : #asmOpCodes(OPS)
-    rule #asmOpCodes( SGT          ; OPS ) =>  19 : #asmOpCodes(OPS)
-    rule #asmOpCodes( EQ           ; OPS ) =>  20 : #asmOpCodes(OPS)
-    rule #asmOpCodes( ISZERO       ; OPS ) =>  21 : #asmOpCodes(OPS)
-    rule #asmOpCodes( AND          ; OPS ) =>  22 : #asmOpCodes(OPS)
-    rule #asmOpCodes( EVMOR        ; OPS ) =>  23 : #asmOpCodes(OPS)
-    rule #asmOpCodes( XOR          ; OPS ) =>  24 : #asmOpCodes(OPS)
-    rule #asmOpCodes( NOT          ; OPS ) =>  25 : #asmOpCodes(OPS)
-    rule #asmOpCodes( BYTE         ; OPS ) =>  26 : #asmOpCodes(OPS)
-    rule #asmOpCodes( SHA3         ; OPS ) =>  32 : #asmOpCodes(OPS)
-    rule #asmOpCodes( ADDRESS      ; OPS ) =>  48 : #asmOpCodes(OPS)
-    rule #asmOpCodes( BALANCE      ; OPS ) =>  49 : #asmOpCodes(OPS)
-    rule #asmOpCodes( ORIGIN       ; OPS ) =>  50 : #asmOpCodes(OPS)
-    rule #asmOpCodes( CALLER       ; OPS ) =>  51 : #asmOpCodes(OPS)
-    rule #asmOpCodes( CALLVALUE    ; OPS ) =>  52 : #asmOpCodes(OPS)
-    rule #asmOpCodes( CALLDATALOAD ; OPS ) =>  53 : #asmOpCodes(OPS)
-    rule #asmOpCodes( CALLDATASIZE ; OPS ) =>  54 : #asmOpCodes(OPS)
-    rule #asmOpCodes( CALLDATACOPY ; OPS ) =>  55 : #asmOpCodes(OPS)
-    rule #asmOpCodes( CODESIZE     ; OPS ) =>  56 : #asmOpCodes(OPS)
-    rule #asmOpCodes( CODECOPY     ; OPS ) =>  57 : #asmOpCodes(OPS)
-    rule #asmOpCodes( GASPRICE     ; OPS ) =>  58 : #asmOpCodes(OPS)
-    rule #asmOpCodes( EXTCODESIZE  ; OPS ) =>  59 : #asmOpCodes(OPS)
-    rule #asmOpCodes( EXTCODECOPY  ; OPS ) =>  60 : #asmOpCodes(OPS)
-    rule #asmOpCodes( BLOCKHASH    ; OPS ) =>  64 : #asmOpCodes(OPS)
-    rule #asmOpCodes( COINBASE     ; OPS ) =>  65 : #asmOpCodes(OPS)
-    rule #asmOpCodes( TIMESTAMP    ; OPS ) =>  66 : #asmOpCodes(OPS)
-    rule #asmOpCodes( NUMBER       ; OPS ) =>  67 : #asmOpCodes(OPS)
-    rule #asmOpCodes( DIFFICULTY   ; OPS ) =>  68 : #asmOpCodes(OPS)
-    rule #asmOpCodes( GASLIMIT     ; OPS ) =>  69 : #asmOpCodes(OPS)
-    rule #asmOpCodes( POP          ; OPS ) =>  80 : #asmOpCodes(OPS)
-    rule #asmOpCodes( MLOAD        ; OPS ) =>  81 : #asmOpCodes(OPS)
-    rule #asmOpCodes( MSTORE       ; OPS ) =>  82 : #asmOpCodes(OPS)
-    rule #asmOpCodes( MSTORE8      ; OPS ) =>  83 : #asmOpCodes(OPS)
-    rule #asmOpCodes( SLOAD        ; OPS ) =>  84 : #asmOpCodes(OPS)
-    rule #asmOpCodes( SSTORE       ; OPS ) =>  85 : #asmOpCodes(OPS)
-    rule #asmOpCodes( JUMP         ; OPS ) =>  86 : #asmOpCodes(OPS)
-    rule #asmOpCodes( JUMPI        ; OPS ) =>  87 : #asmOpCodes(OPS)
-    rule #asmOpCodes( PC           ; OPS ) =>  88 : #asmOpCodes(OPS)
-    rule #asmOpCodes( MSIZE        ; OPS ) =>  89 : #asmOpCodes(OPS)
-    rule #asmOpCodes( GAS          ; OPS ) =>  90 : #asmOpCodes(OPS)
-    rule #asmOpCodes( JUMPDEST     ; OPS ) =>  91 : #asmOpCodes(OPS)
-    rule #asmOpCodes( CREATE       ; OPS ) => 240 : #asmOpCodes(OPS)
-    rule #asmOpCodes( CALL         ; OPS ) => 241 : #asmOpCodes(OPS)
-    rule #asmOpCodes( CALLCODE     ; OPS ) => 242 : #asmOpCodes(OPS)
-    rule #asmOpCodes( RETURN       ; OPS ) => 243 : #asmOpCodes(OPS)
-    rule #asmOpCodes( DELEGATECALL ; OPS ) => 244 : #asmOpCodes(OPS)
-    rule #asmOpCodes( INVALID(W)   ; OPS ) => W   : #asmOpCodes(OPS)
-    rule #asmOpCodes( SELFDESTRUCT ; OPS ) => 255 : #asmOpCodes(OPS)
-    rule #asmOpCodes( DUP(W)       ; OPS ) => W +Word 127 : #asmOpCodes(OPS)
-    rule #asmOpCodes( SWAP(W)      ; OPS ) => W +Word 143 : #asmOpCodes(OPS)
-    rule #asmOpCodes( LOG(W)       ; OPS ) => W +Word 160 : #asmOpCodes(OPS)
-    rule #asmOpCodes( PUSH(N, W)   ; OPS ) => N +Word 95  : (#padToWidth(N, #asByteStack(W)) ++ #asmOpCodes(OPS))
+    syntax List ::= #asmOpCodes ( OpCodes ) [function]
+ // --------------------------------------------------
+    rule #asmOpCodes( .OpCodes )           => .List
+    rule #asmOpCodes( INVALID(W)   ; OPS ) =>   ListItem(W) #asmOpCodes(OPS)
+    rule #asmOpCodes( STOP         ; OPS ) =>   ListItem(0) #asmOpCodes(OPS)
+    rule #asmOpCodes( ADD          ; OPS ) =>   ListItem(1) #asmOpCodes(OPS)
+    rule #asmOpCodes( MUL          ; OPS ) =>   ListItem(2) #asmOpCodes(OPS)
+    rule #asmOpCodes( SUB          ; OPS ) =>   ListItem(3) #asmOpCodes(OPS)
+    rule #asmOpCodes( DIV          ; OPS ) =>   ListItem(4) #asmOpCodes(OPS)
+    rule #asmOpCodes( SDIV         ; OPS ) =>   ListItem(5) #asmOpCodes(OPS)
+    rule #asmOpCodes( MOD          ; OPS ) =>   ListItem(6) #asmOpCodes(OPS)
+    rule #asmOpCodes( SMOD         ; OPS ) =>   ListItem(7) #asmOpCodes(OPS)
+    rule #asmOpCodes( ADDMOD       ; OPS ) =>   ListItem(8) #asmOpCodes(OPS)
+    rule #asmOpCodes( MULMOD       ; OPS ) =>   ListItem(9) #asmOpCodes(OPS)
+    rule #asmOpCodes( EXP          ; OPS ) =>  ListItem(10) #asmOpCodes(OPS)
+    rule #asmOpCodes( SIGNEXTEND   ; OPS ) =>  ListItem(11) #asmOpCodes(OPS)
+    rule #asmOpCodes( LT           ; OPS ) =>  ListItem(16) #asmOpCodes(OPS)
+    rule #asmOpCodes( GT           ; OPS ) =>  ListItem(17) #asmOpCodes(OPS)
+    rule #asmOpCodes( SLT          ; OPS ) =>  ListItem(18) #asmOpCodes(OPS)
+    rule #asmOpCodes( SGT          ; OPS ) =>  ListItem(19) #asmOpCodes(OPS)
+    rule #asmOpCodes( EQ           ; OPS ) =>  ListItem(20) #asmOpCodes(OPS)
+    rule #asmOpCodes( ISZERO       ; OPS ) =>  ListItem(21) #asmOpCodes(OPS)
+    rule #asmOpCodes( AND          ; OPS ) =>  ListItem(22) #asmOpCodes(OPS)
+    rule #asmOpCodes( EVMOR        ; OPS ) =>  ListItem(23) #asmOpCodes(OPS)
+    rule #asmOpCodes( XOR          ; OPS ) =>  ListItem(24) #asmOpCodes(OPS)
+    rule #asmOpCodes( NOT          ; OPS ) =>  ListItem(25) #asmOpCodes(OPS)
+    rule #asmOpCodes( BYTE         ; OPS ) =>  ListItem(26) #asmOpCodes(OPS)
+    rule #asmOpCodes( SHA3         ; OPS ) =>  ListItem(32) #asmOpCodes(OPS)
+    rule #asmOpCodes( ADDRESS      ; OPS ) =>  ListItem(48) #asmOpCodes(OPS)
+    rule #asmOpCodes( BALANCE      ; OPS ) =>  ListItem(49) #asmOpCodes(OPS)
+    rule #asmOpCodes( ORIGIN       ; OPS ) =>  ListItem(50) #asmOpCodes(OPS)
+    rule #asmOpCodes( CALLER       ; OPS ) =>  ListItem(51) #asmOpCodes(OPS)
+    rule #asmOpCodes( CALLVALUE    ; OPS ) =>  ListItem(52) #asmOpCodes(OPS)
+    rule #asmOpCodes( CALLDATALOAD ; OPS ) =>  ListItem(53) #asmOpCodes(OPS)
+    rule #asmOpCodes( CALLDATASIZE ; OPS ) =>  ListItem(54) #asmOpCodes(OPS)
+    rule #asmOpCodes( CALLDATACOPY ; OPS ) =>  ListItem(55) #asmOpCodes(OPS)
+    rule #asmOpCodes( CODESIZE     ; OPS ) =>  ListItem(56) #asmOpCodes(OPS)
+    rule #asmOpCodes( CODECOPY     ; OPS ) =>  ListItem(57) #asmOpCodes(OPS)
+    rule #asmOpCodes( GASPRICE     ; OPS ) =>  ListItem(58) #asmOpCodes(OPS)
+    rule #asmOpCodes( EXTCODESIZE  ; OPS ) =>  ListItem(59) #asmOpCodes(OPS)
+    rule #asmOpCodes( EXTCODECOPY  ; OPS ) =>  ListItem(60) #asmOpCodes(OPS)
+    rule #asmOpCodes( BLOCKHASH    ; OPS ) =>  ListItem(64) #asmOpCodes(OPS)
+    rule #asmOpCodes( COINBASE     ; OPS ) =>  ListItem(65) #asmOpCodes(OPS)
+    rule #asmOpCodes( TIMESTAMP    ; OPS ) =>  ListItem(66) #asmOpCodes(OPS)
+    rule #asmOpCodes( NUMBER       ; OPS ) =>  ListItem(67) #asmOpCodes(OPS)
+    rule #asmOpCodes( DIFFICULTY   ; OPS ) =>  ListItem(68) #asmOpCodes(OPS)
+    rule #asmOpCodes( GASLIMIT     ; OPS ) =>  ListItem(69) #asmOpCodes(OPS)
+    rule #asmOpCodes( POP          ; OPS ) =>  ListItem(80) #asmOpCodes(OPS)
+    rule #asmOpCodes( MLOAD        ; OPS ) =>  ListItem(81) #asmOpCodes(OPS)
+    rule #asmOpCodes( MSTORE       ; OPS ) =>  ListItem(82) #asmOpCodes(OPS)
+    rule #asmOpCodes( MSTORE8      ; OPS ) =>  ListItem(83) #asmOpCodes(OPS)
+    rule #asmOpCodes( SLOAD        ; OPS ) =>  ListItem(84) #asmOpCodes(OPS)
+    rule #asmOpCodes( SSTORE       ; OPS ) =>  ListItem(85) #asmOpCodes(OPS)
+    rule #asmOpCodes( JUMP         ; OPS ) =>  ListItem(86) #asmOpCodes(OPS)
+    rule #asmOpCodes( JUMPI        ; OPS ) =>  ListItem(87) #asmOpCodes(OPS)
+    rule #asmOpCodes( PC           ; OPS ) =>  ListItem(88) #asmOpCodes(OPS)
+    rule #asmOpCodes( MSIZE        ; OPS ) =>  ListItem(89) #asmOpCodes(OPS)
+    rule #asmOpCodes( GAS          ; OPS ) =>  ListItem(90) #asmOpCodes(OPS)
+    rule #asmOpCodes( JUMPDEST     ; OPS ) =>  ListItem(91) #asmOpCodes(OPS)
+    rule #asmOpCodes( CREATE       ; OPS ) => ListItem(240) #asmOpCodes(OPS)
+    rule #asmOpCodes( CALL         ; OPS ) => ListItem(241) #asmOpCodes(OPS)
+    rule #asmOpCodes( CALLCODE     ; OPS ) => ListItem(242) #asmOpCodes(OPS)
+    rule #asmOpCodes( RETURN       ; OPS ) => ListItem(243) #asmOpCodes(OPS)
+    rule #asmOpCodes( DELEGATECALL ; OPS ) => ListItem(244) #asmOpCodes(OPS)
+    rule #asmOpCodes( SELFDESTRUCT ; OPS ) => ListItem(255) #asmOpCodes(OPS)
+    rule #asmOpCodes( DUP(W)       ; OPS ) => ListItem(W +Word 127) #asmOpCodes(OPS)
+    rule #asmOpCodes( SWAP(W)      ; OPS ) => ListItem(W +Word 143) #asmOpCodes(OPS)
+    rule #asmOpCodes( LOG(W)       ; OPS ) => ListItem(W +Word 160) #asmOpCodes(OPS)
+    rule #asmOpCodes( PUSH(N, W)   ; OPS ) => ListItem(N +Word 95)  (#padToWidth(N, #asByteStack(W)) #asmOpCodes(OPS))
 endmodule
 
