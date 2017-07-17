@@ -5,8 +5,7 @@
         "code": PUSH(1, 0) ; PUSH(1, 10)
                             ; JUMPDEST ; DUP(1) ; ISZERO ; PUSH(1, 21) ; JUMPI
                             ; DUP(1) ; SWAP(2) ; ADD ; SWAP(1) ; PUSH(1, 1) ; SWAP(1) ; SUB
-                            ; PUSH(1, 4) ; JUMP ; JUMPDEST ; POP ; PUSH(1, 0) ; SSTORE
-                            ; .OpCodes,
+                            ; PUSH(1, 4) ; JUMP ; JUMPDEST ; .OpCodes,
         "nonce": "0x00",
         "balance": "0x0de0b6b3a7640000",
         "storage": {
@@ -19,8 +18,7 @@
       "code": PUSH(1, 0) ; PUSH(1, 10)
                             ; JUMPDEST ; DUP(1) ; ISZERO ; PUSH(1, 21) ; JUMPI
                             ; DUP(1) ; SWAP(2) ; ADD ; SWAP(1) ; PUSH(1, 1) ; SWAP(1) ; SUB
-                            ; PUSH(1, 4) ; JUMP ; JUMPDEST ; POP ; PUSH(1, 0) ; SSTORE
-                            ; .OpCodes ,
+                            ; PUSH(1, 4) ; JUMP ; JUMPDEST ; .OpCodes ,
       "caller": "0x4b0897b0513fdc7c541b6d9d7e929c4e5364d2db",
       "gas": "0x0186a0",
       "value": "0x0",
