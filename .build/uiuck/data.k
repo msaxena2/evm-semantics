@@ -32,7 +32,9 @@ module EVM-DATA
 
     syntax Word ::= Int | chop ( Word ) [function]
  // ----------------------------------------------
-    rule chop( W:Int ) => W %Int (2 ^Int 256)
+    rule chop( W:Int ) => W %Int (2 ^Int 256)       requires W >=Int 2^Int 256
+    rule chop( W:Int ) => W                         requires W <Int  2^Int 256 andBool W>=Int 0
+    rule chop( W:Int ) => chop(W +Int (2^Int 256))  requires W <Int  0
 
 
 // -   `bool2Word` interperets a `Bool` as a `Word`.
@@ -83,7 +85,7 @@ module EVM-DATA
 
     syntax Word ::= "#symbolicWord" [function]
  // ------------------------------------------
-    rule #symbolicWord => ?X:Int
+    rule #symbolicWord => ?X:Int 
 
 
 // Arithmetic
@@ -127,9 +129,9 @@ module EVM-DATA
                   | Word "/Word" Word [function]
                   | Word "%Word" Word [function]
  // --------------------------------------------
-    rule W0:Int +Word W1:Int => chop( W0 +Int W1 )
-    rule W0:Int -Word W1:Int => chop( (W0 +Int (2 ^Int 256)) -Int W1 )
-    rule W0:Int *Word W1:Int => chop( W0 *Int W1 )
+    rule W0:Int +Word W1:Int =>  chop( W0 +Int W1 )  
+    rule W0:Int -Word W1:Int =>  chop( ( W0 +Int 2^Int 256)  -Int W1 ) 
+	rule W0:Int *Word W1:Int => chop( W0 *Int W1 )
     rule W0:Int /Word 0      => 0
     rule W0:Int /Word W1:Int => chop( W0 /Int W1 ) requires W1 =/=K 0
     rule W0:Int %Word 0      => 0

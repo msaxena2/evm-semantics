@@ -7,32 +7,32 @@
 
 module ADD1-SPEC
     import ETHEREUM-SIMULATION
-
+/*
 rule
 <k>
 .
 </k>
 <mode> NORMAL </mode>
 <schedule> DEFAULT </schedule>
-<op>  #execute => #execute</op>
+<op>  #execute => ?OP:K</op>
 <memoryUsed> 0   </memoryUsed>
  <callStack> .List => .List </callStack>
 <localMem> .Map </localMem>
-<gas> N =>N1 </gas>
-<previousGas> 0 => N1+Int 2 </previousGas>
+<gas> G =>G1 </gas>
+<previousGas> 0 => G1+Int 2 </previousGas>
 <pc> 0 => 23 </pc>
  <id> ACCT </id>
   <network>
 <activeAccounts>   SetItem (ACCT)   </activeAccounts>
 
  <accounts>
- ...
 <account>
 <acctID> ACCT </acctID>
 <storage> .Map</storage>
-...
+<balance> 0:Word </balance>
+<code>    .Map   </code>
+<acctMap> M:Map   </acctMap>
 </account>
-...
 </accounts>
 <messages> .Bag </messages>
 </network>
@@ -41,43 +41,30 @@ rule
 ; JUMPDEST ; DUP(1) ; ISZERO ; PUSH(1, 21) ; JUMPI ; DUP(1) ; SWAP(2) ; ADD ; SWAP(1) ; PUSH(1, 1) ;
 SWAP(1) ; SUB ; PUSH(1, 4) ; JUMP ; JUMPDEST ; POP ; .OpCodes
 )</program>
-requires N>=Int (52*Int I) +Int 29 andBool I>=Int 1  andBool I<Int 2^Int 256
-ensures N-Int N1==Int (52*Int I )+Int 29
-
-
+requires G>=Int (52*Int I) +Int 29 andBool I>=Int 1  
+ensures G-Int G1==Int (52*Int I )+Int 29
+*/
 //loop invariant
 rule
-<k> . </k>
+<k> .K </k>
 <mode> NORMAL </mode>
 <schedule> DEFAULT </schedule>
-<op> #execute=> #execute</op>
+<op>  #execute=> ?OP:K</op>
 <memoryUsed> 0  </memoryUsed>
 <callStack> .List => .List </callStack>
 <localMem>.Map</localMem>
-<gas> N =>N1 </gas>
-<previousGas> N+Int 8 => N1+Int 2 </previousGas>
+<gas> G =>G1 </gas>
+<previousGas> _ => G1+Int 2 </previousGas>
 <pc> 4=>23</pc>
- <id> ACCT </id>
-  <network>
-<activeAccounts>   SetItem (ACCT)   </activeAccounts>
- <accounts>
-<account>
-<acctID> ACCT </acctID>
-<storage> .Map</storage>
-...
-</account>
-</accounts>
-<messages> .Bag </messages>
-</network>
-
 <program> #asMapOpCodes( PUSH(1, 0) ; PUSH(1, I)
 ; JUMPDEST ; DUP(1) ; ISZERO ; PUSH(1, 21) ; JUMPI ; DUP(1) ; SWAP(2) ; ADD ; SWAP(1) ; PUSH(1, 1) ;
 SWAP(1) ; SUB ; PUSH(1, 4) ; JUMP ; JUMPDEST ; POP ;
  .OpCodes)</program>
-<wordStack> I1:Int : I2:Int : .WordStack =>(I2 +Int (I1 *Int (I1 -Int 1)/Int 2)) : .WordStack </wordStack>
+<wordStack> N : S : .WordStack =>(S +Int (N *Int (N +Int 1)/Int 2)) : .WordStack </wordStack>
 
-requires N>=Int (52*Int I1) +Int 23 andBool I1>=Int 0  andBool I1<=Int I andBool I2>=Int 0 andBool I1<Int 2^Int 256 andBool I2<Int 2^Int 256
-ensures N-Int N1==Int (52*Int I1 )+Int 23
+requires G>=Int (52*Int N) +Int 23 andBool N>=Int 0 andBool N<=Int I andBool S>=Int 0 andBool I <=Int 2^Int 128 andBool ((I *Int (I +Int 1)/Int 2) ==Int (S +Int (N *Int (N +Int 1)/Int 2)))
+ensures G-Int G1==Int (52*Int N )+Int 23
+
 
 endmodule
 

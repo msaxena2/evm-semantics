@@ -26,13 +26,13 @@ rule
 <activeAccounts>   SetItem (ACCT)   </activeAccounts>
 
  <accounts>
- ...
 <account>
 <acctID> ACCT </acctID>
 <storage> .Map</storage>
-...
+<balance> 0:Word </balance>
+<code>    .Map   </code>
+<acctMap> M:Map   </acctMap>
 </account>
-...
 </accounts>
 <messages> .Bag </messages>
 </network>
@@ -64,7 +64,9 @@ rule
 <account>
 <acctID> ACCT </acctID>
 <storage> .Map</storage>
-...
+<balance> 0:Word </balance>
+<code>    .Map   </code>
+<acctMap> M:Map   </acctMap>
 </account>
 </accounts>
 <messages> .Bag </messages>
