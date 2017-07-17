@@ -64,7 +64,7 @@ module ADD1-SPEC
             </network>
         </ethereum>
     </generatedTop>
-    requires N ==Int 11
+    requires N ==Int 10 orBool N ==Int 11
 
 endmodule
 
