@@ -56,7 +56,7 @@ module ADD1-SPEC
                         <acctID>87579061662017136990230301793909925042452127430</acctID>
                         <balance>1000000000000000000</balance>
                         <code>0 |-> PUSH ( 1 , 0 ) 2 |-> PUSH ( 1 , N:Int ) 4 |-> JUMPDEST 5 |-> DUP ( 1 ) 6 |-> ISZERO 7 |-> PUSH ( 1 , 21 ) 9 |-> JUMPI 10 |-> DUP ( 1 ) 11 |-> SWAP ( 2 ) 12 |-> ADD 13 |-> SWAP ( 1 ) 14 |-> PUSH ( 1 , 1 ) 16 |-> SWAP ( 1 ) 17 |-> SUB 18 |-> PUSH ( 1 , 4 ) 20 |-> JUMP 21 |-> JUMPDEST 22 |-> POP 23 |-> PUSH ( 1 , 0 ) 25 |-> SSTORE</code>
-                        <storage>.Map => 0 |-> 55</storage>
+                        <storage>.Map => 0 |-> (N *Int (N +Int 1)) /Int 2</storage>
                         <acctMap>"nonce" |-> 0</acctMap>
                     </account>
                 </accounts>
