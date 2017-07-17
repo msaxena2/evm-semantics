@@ -32,7 +32,7 @@ module ADD1-SPEC
                     <wordStack>.WordStack</wordStack>
                     <localMem>.Map</localMem>
                     <pc>0 => 26</pc>
-                    <gas>100000 => 79448</gas>
+                    <gas>100000 => 100000 -Int (20032 +Int (N *Int 52))</gas>
                     <previousGas>0 => 99448</previousGas>
                 </txExecState>
                 <substate>
