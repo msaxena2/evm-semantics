@@ -33,7 +33,7 @@ module ADD1-SPEC
                     <localMem>.Map</localMem>
                     <pc>0 => 26</pc>
                     <gas>100000 => 100000 -Int (20032 +Int (N *Int 52))</gas>
-                    <previousGas>0 => 99448</previousGas>
+                    <previousGas>0 => 100000 -Int (32 +Int (N *Int 52)) </previousGas>
                 </txExecState>
                 <substate>
                     <selfDestruct>.Set</selfDestruct>
