@@ -57,7 +57,7 @@ krun_with_opts() {
     export K_OPTS=-Xss500m
     export cSCHEDULE=${cSCHEDULE:-DEFAULT}
     case "$test_file" in
-       *gas-analysis/*) test_opts=( -cMODE=GASANALYZE "$test_file" );;
+       *gas-analysis/*) test_opts=( -cMODE=VMTESTS    "$test_file" );;
        *VMTests/*     ) test_opts=( -cMODE=VMTESTS    "$test_file" );;
        *proofs/*      ) set_test_opts_for_proofs "$test_file"; lint=cat;;
        *              ) die "Don't know how to set test_opts for '$test_file'";;
