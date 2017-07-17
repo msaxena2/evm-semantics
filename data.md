@@ -32,7 +32,9 @@ Primitives provide the basic conversion from K's sorts `Int` and `Bool` to EVM's
 ```{.k .uiuck .rvk}
     syntax Word ::= Int | chop ( Word ) [function]
  // ----------------------------------------------
-    rule chop( W:Int ) => W %Int (2 ^Int 256)
+    rule chop( W:Int ) => W %Int (2 ^Int 256)       requires W >=Int 2^Int 256
+    rule chop( W:Int ) => W                         requires W <Int  2^Int 256 andBool W>=Int 0
+    rule chop( W:Int ) => chop(W +Int (2^Int 256))  requires W <Int  0
 ```
 
 -   `bool2Word` interperets a `Bool` as a `Word`.
