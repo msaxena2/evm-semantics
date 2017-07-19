@@ -13,7 +13,7 @@ module ADD1-SPEC
         <mode>      NORMAL </mode>
         <schedule>  DEFAULT </schedule>
         <analysis>  .Map </analysis>
-                <op>  #next ~> #execute => . </op>
+                <op> #execute </op>
                 <output>.WordStack</output>
                 <memoryUsed>0</memoryUsed>
                 <callStack>.List</callStack>
@@ -23,13 +23,14 @@ module ADD1-SPEC
                     <caller>428365927726247537526132020791190998556166378203</caller>
                     <callData>0 : .WordStack</callData>
                     <callValue>0</callValue>
-                    <wordStack> .WordStack => 0 : (N *Int N +Int 1) /Int 2 : .WordStack </wordStack>
+                    <wordStack> .WordStack => NP : PS : .WordStack </wordStack>
                     <localMem>.Map</localMem>
-                    <pc>0 => 22</pc>
-                    <gas>G => ?G:Int</gas>
-                    <previousGas>0 => ?PG:Int</previousGas>
+                    <pc>4 => 22</pc>
+                    <gas>G => G2:Int</gas>
+                    <previousGas>PG => PG2:Int</previousGas>
                 </txExecState>
-    requires (N >Int 0) andBool (N <Int (2 ^Int 128)) andBool (G >=Int (52 *Int N) +Int 29)
+    requires (N >Int 0) andBool (N <Int (2 ^Int 128)) andBool (G >Int (52 *Int N) +Int 300) andBool G <Int (2 ^Int 256)
+    ensures (N *Int (N +Int 1)) /Int 2 ==Int NP +Int ((PS *Int (PS +Int 1)) /Int 2) andBool (NP ==Int 0)
 ```
 The Cirucularity Rule
 ---------------------
@@ -38,11 +39,10 @@ The Cirucularity Rule
 ```{.k}
     rule
         <k>         .   </k>
-        <exit-code> 1   </exit-code>
         <mode>      NORMAL </mode>
         <schedule>  DEFAULT </schedule>
         <analysis>  .Map </analysis>
-                <op>  #execute => #end </op>
+                <op>  #execute </op>
                 <output>.WordStack</output>
                 <memoryUsed>0</memoryUsed>
                 <callStack>.List</callStack>
@@ -52,12 +52,15 @@ The Cirucularity Rule
                     <caller>428365927726247537526132020791190998556166378203</caller>
                     <callData>0 : .WordStack</callData>
                     <callValue>0</callValue>
-                    <wordStack> NP:Int : ( PSUM:Int : .WordStack ) => 0 : (PSUM +Int (NP *Int (NP +Int 1)) /Int 2) : .WordStack </wordStack>
+                    <wordStack> NP:Int : ( PSUM:Int : .WordStack ) => NP2:Int : (PS2:Int : .WordStack) </wordStack>
                     <localMem>.Map</localMem>
                     <pc>4 => 22</pc>
-                    <gas> GC:Int => ?GC </gas>
-                    <previousGas> PG:Int => ?PG </previousGas>
+                    <gas> GC:Int => GC2:Int </gas>
+                    <previousGas> PG:Int => PG2:Int </previousGas>
                 </txExecState>
-    requires (NP >=Int 0) andBool (NP <Int (2 ^Int 128)) andBool N <Int (2 ^Int 128) andBool ((N *Int (N +Int 1) /Int 2) ==Int (PSUM +Int (NP *Int (NP +Int 1) /Int 2))) andBool (G >=Int (52 *Int N) +Int 29)
+    requires (NP >=Int 0) andBool (NP <=Int N) andBool N <Int (2 ^Int 128) andBool ((N *Int (N +Int 1) /Int 2) ==Int (PSUM +Int (NP *Int (NP +Int 1) /Int 2))) andBool ((PSUM +Int NP) <Int 2^Int 256) andBool (GC >Int (52 *Int NP) +Int 294) andBool PG >Int GC andBool ((NP) <Int (2 ^Int 128)) andBool ((PSUM +Int NP) >=Int 0)
+
+    ensures (N *Int (N +Int 1)) /Int 2 ==Int NP2 +Int ((PS2 *Int (PS2 +Int 1)) /Int 2) andBool (NP2 ==Int 0)
+
 endmodule
 ```
